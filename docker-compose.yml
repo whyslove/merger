@@ -1,0 +1,30 @@
+version: '3.1'
+services:
+    nginx:
+        image: nginx:latest
+        container_name: nvr_merge_nginx
+        depends_on:
+            - flask
+        ports:
+            - 8080:8080
+        volumes:
+            - ./nginx.conf:/etc/nginx/conf.d/default.conf
+        networks:
+            - nvr-network
+    flask:
+        build:
+            context: ./
+            dockerfile: Dockerfile
+        image: flask:latest
+        container_name: nvr_merge_flask
+        volumes:
+            - ./:/code/
+        environment:
+            - FLASK_APP=/code/run.py
+        command: flask run --host=0.0.0.0
+        networks:
+            nvr-network:
+                aliases:
+                    - nvr_merge
+networks:
+    nvr-network:
