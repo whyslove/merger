@@ -10,7 +10,7 @@ home = str(Path.home())
 NVR_API_KEY = 'ce72d95a264248558f352768d620ca16'
 
 
-def merge_video(client_url: str, screen_num: str, cam_num: str, record_name: str, room_id: int, calendar_id: str, event_id: str) -> None:
+def merge_video(client_url: str, screen_num: str, cam_num: str, record_name: str, room_id: int, folder_id: str, calendar_id: str, event_id: str) -> None:
     with lock:
 
         first = subprocess.Popen(["ffmpeg", "-i", home + "/vids/vid_" + cam_num + ".mp4", "-i", home + "/vids/vid_" +
@@ -56,6 +56,7 @@ def merge_video(client_url: str, screen_num: str, cam_num: str, record_name: str
                             json={
                                 "file_name": res + record_name + "merged.mp4",
                                 "room_id": room_id,
+                                "folder_id" : folder_id,
                                 "calendar_id": calendar_id,
                                 "event_id": event_id
                             },
