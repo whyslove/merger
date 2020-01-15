@@ -90,25 +90,25 @@ def merge_new(files: dict):
         vids_to_merge_sld.write(home + '/vids/' + slides[i])
     vids_to_merge_cam.close()
     vids_to_merge_sld.close()
-    cam_proc = subprocess.Popen(f'ffmpeg -f concat -safe 0 -i {home}/vids/vids_to_merge_cam_{start_time}_{end_time}.txt -c copy {home}/vids/cam_result_{start_time}_{end_time}.mp4')
-    sld_proc = subprocess.Popen(f'ffmpeg -f concat -safe 0 -i {home}/vids/vids_to_merge_sld_{start_time}_{end_time}.txt -c copy {home}/vids/sld_result_{start_time}_{end_time}.mp4')
+    cam_proc = subprocess.Popen(['ffmpeg', '-f', 'concat', '-safe', '0', '-i', f'{home}/vids/vids_to_merge_cam_{start_time}_{end_time}.txt', '-c','copy', f'{home}/vids/cam_result_{start_time}_{end_time}.mp4'])
+    sld_proc = subprocess.Popen(['ffmpeg', '-f', 'concat', '-safe', '0', '-i', f'{home}/vids/vids_to_merge_sld_{start_time}_{end_time}.txt', '-c', 'copy', f'{home}/vids/sld_result_{start_time}_{end_time}.mp4'])
     cam_proc.wait()
     sld_proc.wait()
-    first = subprocess.Popen(f"ffmpeg -i {home}/vids/cam_result_{start_time}_{end_time}.mp4 -i {home}/vids/sld_result_{start_time}_{end_time}.mp4 -filter_complex hstack=inputs=2 {home}/vids/{start_time}_{end_time}_merged.mp4", shell=False)
+    first = subprocess.Popen(['ffmpeg', '-i', f'{home}/vids/cam_result_{start_time}_{end_time}.mp4', '-i', f'{home}/vids/sld_result_{start_time}_{end_time}.mp4', '-filter_complex', 'hstack=inputs=2', f'{home}/vids/{start_time}_{end_time}_merged.mp4'], shell=False)
     os.system("renice -n 20 %s" % (first.pid, ))
     first.wait()
-    res = requests.post(files['url'] + "/upload-merged",
-                    json={
-                        "file_name": f"{start_time}_{end_time}_merged.mp4",
-                        "room_id": files['room_id'],
-                        "folder_id" : files['folder_id'],
-                        "calendar_id": files['calendar_id'],
-                        "event_id": files['event_id']
-                    },
-                    headers={'content-type': 'application/json',
-                                "key": NVR_API_KEY}
-                    )
-    print(res.json())
+    # res = requests.post(files['url'] + "/upload-merged",
+    #                 json={
+    #                     "file_name": f"{start_time}_{end_time}_merged.mp4",
+    #                     "room_id": files['room_id'],
+    #                     "folder_id" : files['folder_id'],
+    #                     "calendar_id": files['calendar_id'],
+    #                     "event_id": files['event_id']
+    #                 },
+    #                 headers={'content-type': 'application/json',
+    #                             "key": NVR_API_KEY}
+    #                 )
+    # print(res.json())
 
 # merge_new({'camera':['2019-12-20_15:10_504_136'], 'screen':['2019-12-20_15:10_504_12']})
 
