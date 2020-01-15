@@ -36,14 +36,18 @@ if not creds or not creds.valid:
 
 drive_service = build('drive', 'v3', credentials=creds)
 
+
+from merge import home
+
 def download_video(video_id: str, video_name: str) -> None:
     request = drive_service.files().get_media(fileId=video_id)
-    fh = io.FileIO(video_name, mode='w')
+    fh = io.FileIO(f'{home}/vids/{video_name}', mode='w')
     downloader = MediaIoBaseDownload(fh, request)
     done = False
     while done is False:
         status, done = downloader.next_chunk()
 
+download_video('1k4s8tmslJGNv14XAzH2kze56S4DSXcAP', 'test.mp4')
 
 def get_video_by_name(name: str) -> str:
     page_token = None
