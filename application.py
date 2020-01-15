@@ -26,6 +26,7 @@ def start_merge():
 @app.route('/merge/new', methods=["POST"])
 def start_new_merge():
     json = request.get_json(force=True)
+    print(json)
     if len(json['camera'])  != len(json['screen']):
         resp = {'error':'wrong amount of files'}
         return jsonify(resp), 400

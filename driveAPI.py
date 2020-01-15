@@ -7,8 +7,8 @@ from google.auth.transport.requests import Request
 from googleapiclient.http import MediaIoBaseDownload
 import io
 from datetime import datetime
-from merge import home
-
+from pathlib import Path
+home = str(Path.home())
 
 from threading import RLock
 lock = RLock()
