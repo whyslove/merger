@@ -7,6 +7,7 @@ from google.auth.transport.requests import Request
 from googleapiclient.http import MediaIoBaseDownload
 import io
 from datetime import datetime
+from merge import home
 
 
 from threading import RLock
@@ -36,9 +37,11 @@ if not creds or not creds.valid:
 
 drive_service = build('drive', 'v3', credentials=creds)
 
+
+
 def download_video(video_id: str, video_name: str) -> None:
     request = drive_service.files().get_media(fileId=video_id)
-    fh = io.FileIO(video_name, mode='w')
+    fh = io.FileIO(f'{home}/vids/{video_name}', mode='w')
     downloader = MediaIoBaseDownload(fh, request)
     done = False
     while done is False:

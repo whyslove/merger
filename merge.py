@@ -3,6 +3,7 @@ import subprocess
 import requests
 from pathlib import Path
 from threading import Lock
+import driveAPI
 
 lock = Lock()
 home = str(Path.home())
@@ -72,3 +73,48 @@ def add_sound(record_name: str, audio_cam_num: str) -> None:
                              ".mp4", "-y", "-shortest", "-c", "copy",
                              home + "/vids/" + record_name + ".mp4"], shell=False)
     proc.wait()
+
+def merge_new(files: dict):
+    cam = files['camera'].sort()
+    start_time = cam[0].split('_')[1]
+    end_time = cam[-1].split('_')[1]
+    slides = files['screen'].sort()
+    vids_to_merge_cam = open(f'vids_to_merge_cam_{start_time}_{end_time}.txt', 'a')
+    vids_to_merge_sld = open(f'vids_to_merge_sld_{start_time}_{end_time}.txt', 'a')
+    for i in range(len(cam)):
+        cam_file_id = get_video_by_name(cam[i])
+        download_video(cam_file_id, cam[i])
+        vids_to_merge_cam.write(home + '/vids/' + cam[i])
+        sld_file_id = get_video_by_name(slides[i])
+        download_video(sld_file_id, slides[i])
+        vids_to_merge_sld.write(home + '/vids/' + slides[i])
+    vids_to_merge_cam.close()
+    vids_to_merge_sld.close()
+    cam_proc = subprocess.Popen(f'ffmpeg -f concat -safe 0 -i vids_to_merge_cam_{start_time}_{end_time}.txt -c copy {home}/vids/cam_result_{start_time}_{end_time}.mp4')
+    sld_proc = subprocess.Popen(f'ffmpeg -f concat -safe 0 -i vids_to_merge_sld_{start_time}_{end_time}.txt -c copy {home}/vids/sld_result_{start_time}_{end_time}.mp4')
+    cam_proc.wait()
+    sld_proc.wait()
+    first = subprocess.Popen([f"ffmpeg -i {home}/vids/cam_result_{start_time}_{end_time}.mp4 -i {home}/vids/sld_result_{start_time}_{end_time}.mp4 -filter_complex hstack=inputs=2 {home}/vids/{start_time}_{end_time}_merged.mp4"], shell=False)
+    os.system("renice -n 20 %s" % (first.pid, ))
+    first.wait()
+    res = requests.post(files['url'] + "/upload-merged",
+                    json={
+                        "file_name": f"{start_time}_{end_time}_merged.mp4",
+                        "room_id": files['room_id'],
+                        "folder_id" : files['folder_id'],
+                        "calendar_id": files['calendar_id'],
+                        "event_id": files['event_id']
+                    },
+                    headers={'content-type': 'application/json',
+                                "key": NVR_API_KEY}
+                    )
+    print(res.json())
+
+# merge_new({'camera':['2019-12-20_15:10_504_136'], 'screen':['2019-12-20_15:10_504_12']})
+    
+        
+
+
+        
+
+    
