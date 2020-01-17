@@ -83,20 +83,44 @@ def merge_new(files: dict):
     vids_to_merge_sld = open(f'{home}/vids/vids_to_merge_sld_{start_time}_{end_time}.txt', 'a')
     for i in range(len(cam)):
         cam_file_id = get_video_by_name(cam[i])
-        download_video(cam_file_id, cam[i])
+        thread1 = Thread(target=download_video, args=(cam_file_id, cam[i],)
+        thread1.start()
         vids_to_merge_cam.write(f"file '{home}/vids/{cam[i]}'\n")
         sld_file_id = get_video_by_name(slides[i])
-        download_video(sld_file_id, slides[i])
+        thread2 = Thread(target=download_video, args=(sld_file_id, slides[i],)
+        thread2.start()
         vids_to_merge_sld.write(f"file '{home}/vids/{slides[i]}'\n")
+        thread1.join()
+        thread2.join()
     vids_to_merge_cam.close()
     vids_to_merge_sld.close()
     cam_proc = subprocess.Popen(['ffmpeg', '-f', 'concat', '-safe', '0', '-i', f'{home}/vids/vids_to_merge_cam_{start_time}_{end_time}.txt', '-c','copy', f'{home}/vids/cam_result_{start_time}_{end_time}.mp4'])
     sld_proc = subprocess.Popen(['ffmpeg', '-f', 'concat', '-safe', '0', '-i', f'{home}/vids/vids_to_merge_sld_{start_time}_{end_time}.txt', '-c', 'copy', f'{home}/vids/sld_result_{start_time}_{end_time}.mp4'])
     cam_proc.wait()
     sld_proc.wait()
+    for vid in cam:
+        os.remove(vid)
+    for vid in slides:
+        os.remove(vid)
     first = subprocess.Popen(['ffmpeg', '-i', f'{home}/vids/cam_result_{start_time}_{end_time}.mp4', '-i', f'{home}/vids/sld_result_{start_time}_{end_time}.mp4', '-filter_complex', 'hstack=inputs=2', f'{home}/vids/{start_time}_{end_time}_merged.mp4'], shell=False)
     os.system("renice -n 20 %s" % (first.pid, ))
     first.wait()
+    os.remove(f'{home}/vids/cam_result_{start_time}_{end_time}.mp4')
+    os.remove(f'{home}/vids/sld_result_{start_time}_{end_time}.mp4')
+    t1 = int(files['start'].split(':')[1]) - int(start_time.split(':')[1])
+    t2 = int(end_time.split(':')[1]) + 30 - int(files['end'].split(':')[1])
+    duration =  len(cam) * 30 - t1 - t2
+    if (duration // 60) > 9:
+        d = f'{duration//60}:{duration%60}:00'
+    else:
+        d = f'0{duration//60}:{duration%60}:00'
+    if t1 > 9:
+        st = f'00:{t1}:00'
+    else:
+        st = f'00:0{t1}:00'
+    second = subprocess.Popen(['ffmpeg', '-ss', st, '-t', d, '-i', f'{home}/vids/{start_time}_{end_time}_merged.mp4', '-vcodec', 'copy', '-acodec', 'copy', f'{home}/vids/{start_time}_{end_time}_final.mp4'])
+    os.system("renice -n 20 %s" % (second.pid, ))
+    second.wait()
     # res = requests.post(files['url'] + "/upload-merged",
     #                 json={
     #                     "file_name": f"{start_time}_{end_time}_merged.mp4",
