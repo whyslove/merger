@@ -83,11 +83,11 @@ def merge_new(files: dict):
     vids_to_merge_sld = open(f'{home}/vids/vids_to_merge_sld_{start_time}_{end_time}.txt', 'a')
     for i in range(len(cam)):
         cam_file_id = get_video_by_name(cam[i])
-        thread1 = Thread(target=download_video, args=(cam_file_id, cam[i],)
+        thread1 = Thread(target=download_video, args=(cam_file_id, cam[i],))
         thread1.start()
         vids_to_merge_cam.write(f"file '{home}/vids/{cam[i]}'\n")
         sld_file_id = get_video_by_name(slides[i])
-        thread2 = Thread(target=download_video, args=(sld_file_id, slides[i],)
+        thread2 = Thread(target=download_video, args=(sld_file_id, slides[i],))
         thread2.start()
         vids_to_merge_sld.write(f"file '{home}/vids/{slides[i]}'\n")
         thread1.join()
