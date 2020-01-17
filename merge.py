@@ -96,16 +96,16 @@ def merge_new(files: dict):
     cam_proc.wait()
     sld_proc.wait()
     for vid in cam:
-        os.remove(vid)
+        os.remove(f'{home}/vids/{vid}')
     for vid in slides:
-        os.remove(vid)
+        os.remove(f'{home}/vids/{vid}')
     first = subprocess.Popen(['ffmpeg', '-i', f'{home}/vids/cam_result_{start_time}_{end_time}.mp4', '-i', f'{home}/vids/sld_result_{start_time}_{end_time}.mp4', '-filter_complex', 'hstack=inputs=2', f'{home}/vids/{start_time}_{end_time}_merged.mp4'], shell=False)
     os.system("renice -n 20 %s" % (first.pid, ))
     first.wait()
     os.remove(f'{home}/vids/cam_result_{start_time}_{end_time}.mp4')
     os.remove(f'{home}/vids/sld_result_{start_time}_{end_time}.mp4')
-    t1 = int(files['start'].split(':')[1]) - int(start_time.split(':')[1])
-    t2 = int(end_time.split(':')[1]) + 30 - int(files['end'].split(':')[1])
+    t1 = int(files['start_time'].split(':')[1]) - int(start_time.split(':')[1])
+    t2 = int(end_time.split(':')[1]) + 30 - int(files['end_time'].split(':')[1])
     duration =  len(cam) * 30 - t1 - t2
     if (duration // 60) > 9:
         d = f'{duration//60}:{duration%60}:00'
