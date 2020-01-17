@@ -108,14 +108,19 @@ def merge_new(files: dict):
     t2 = int(end_time.split(':')[1]) + 30 - int(files['end_time'].split(':')[1])
     duration =  len(cam) * 30 - t1 - t2
     if (duration // 60) > 9:
-        d = f'{duration//60}:{duration%60}:00'
+        hours = f'{duration//60}'
     else:
-        d = f'0{duration//60}:{duration%60}:00'
+        hours = f'0{duration//60}'
+    if (duration%60) > 9:
+        minutes = f'{duration%60}'
+    else:
+        minutes = f'0{duration%60}'
+    d = f'{hours}:{minutes}:00'
     if t1 > 9:
         st = f'00:{t1}:00'
     else:
         st = f'00:0{t1}:00'
-    second = subprocess.Popen(['ffmpeg', '-ss', st, '-t', d, '-i', f'{home}/vids/{start_time}_{end_time}_merged.mp4', '-vcodec', 'copy', '-acodec', 'copy', f'{home}/vids/{start_time}_{end_time}_final.mp4'])
+    second = subprocess.Popen(['ffmpeg', '-ss', st, '-t', d, '-i', f'{home}/vids/{start_time}_{end_time}_merged.mp4', '-sameq', f'{home}/vids/{start_time}_{end_time}_final.mp4'])
     os.system("renice -n 20 %s" % (second.pid, ))
     second.wait()
     # res = requests.post(files['url'] + "/upload-merged",
