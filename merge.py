@@ -84,10 +84,10 @@ def merge_new(files: dict):
     for i in range(len(cam)):
         cam_file_id = get_video_by_name(cam[i])
         download_video(cam_file_id, cam[i])
-        vids_to_merge_cam.write(home + '/vids/' + cam[i])
+        vids_to_merge_cam.write(f"file '{home}/vids/{cam[i]}'\n")
         sld_file_id = get_video_by_name(slides[i])
         download_video(sld_file_id, slides[i])
-        vids_to_merge_sld.write(home + '/vids/' + slides[i])
+        vids_to_merge_sld.write(f"file '{home}/vids/{slides[i]}'\n")
     vids_to_merge_cam.close()
     vids_to_merge_sld.close()
     cam_proc = subprocess.Popen(['ffmpeg', '-f', 'concat', '-safe', '0', '-i', f'{home}/vids/vids_to_merge_cam_{start_time}_{end_time}.txt', '-c','copy', f'{home}/vids/cam_result_{start_time}_{end_time}.mp4'])
