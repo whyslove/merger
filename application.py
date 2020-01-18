@@ -11,24 +11,26 @@ def main():
 
 
 @app.route('/merge', methods=["POST"])
+def start_merge():
+    json = request.get_json(force=True)
+    Thread(target=merge_video,
+           args=(json['url'], json["screen_num"], json["cam_num"], json["record_name"],
+                 json["room_id"], json["folder_id"], json['calendar_id'], json['event_id']),
+           daemon=True
+           ).start()
+    return "Merge started", 200
+
+
+@app.route('/merge-new', methods=["POST"])
 def start_new_merge():
     json = request.get_json(force=True)
     print(json)
     if len(json['cameras']) != len(json['screens']):
         resp = {'error': 'The number of camera and screen files should be equal'}
         return jsonify(resp), 400
-    Thread(target=hstack_camera_and_screen, kwargs={**json}, daemon=True).start()
+    Thread(target=hstack_camera_and_screen,
+           kwargs={**json}, daemon=True).start()
     return "Merge started", 200
-
-#
-#   {
-#    'camera' : ['1', '2', '3'],
-#    'screen' : ['1', '2', '3'],
-#    'folder_id': ' ',
-#    'calendar_id': ' ',
-#    'event_id': ' '
-#   }
-#
 
 
 if __name__ == '__main__':
