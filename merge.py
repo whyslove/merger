@@ -120,7 +120,7 @@ def merge_new(files: dict):
         st = f'00:{t1}:00'
     else:
         st = f'00:0{t1}:00'
-    second = subprocess.Popen(['ffmpeg', '-ss', st, '-t', d, '-i', f'{home}/vids/{start_time}_{end_time}_merged.mp4', '-sameq', f'{home}/vids/{start_time}_{end_time}_final.mp4'])
+    second = subprocess.Popen(['ffmpeg', '-ss', st, '-t', d, '-i', f'{home}/vids/{start_time}_{end_time}_merged.mp4', '-vcodec', 'copy', '-acodec', 'copy', f'{home}/vids/{start_time}_{end_time}_final.mp4'])
     os.system("renice -n 20 %s" % (second.pid, ))
     second.wait()
     # res = requests.post(files['url'] + "/upload-merged",
