@@ -14,10 +14,10 @@ def main():
 def start_new_merge():
     json = request.get_json(force=True)
     print(json)
-    if len(json['camera']) != len(json['screen']):
+    if len(json['cameras']) != len(json['screens']):
         resp = {'error': 'The number of camera and screen files should be equal'}
         return jsonify(resp), 400
-    Thread(target=hstack_camera_and_screen, args=(**json), daemon=True).start()
+    Thread(target=hstack_camera_and_screen, kwargs={**json}, daemon=True).start()
     return "Merge started", 200
 
 #
