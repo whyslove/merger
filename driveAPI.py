@@ -38,35 +38,44 @@ if not creds or not creds.valid:
 drive_service = build('drive', 'v3', credentials=creds)
 
 
-
 def download_video(video_id: str, video_name: str) -> None:
-    request = drive_service.files().get_media(fileId=video_id)
-    fh = io.FileIO(f'{home}/vids/{video_name}', mode='w')
-    downloader = MediaIoBaseDownload(fh, request)
-    done = False
-    while done is False:
-        status, done = downloader.next_chunk()
+    with lock:
+        request = drive_service.files().get_media(fileId=video_id)
+        fh = io.FileIO(f'{home}/vids/{video_name}', mode='w')
+        downloader = MediaIoBaseDownload(fh, request)
+        done = False
+        while done is False:
+            status, done = downloader.next_chunk()
+
+
+def upload_video(filename: str, folder_id: str) -> str:
+    """
+    Upload file "filename" on drive folder 'folder_id'
+    """
+    with lock:
+        media = MediaFileUpload(filename, mimetype="video/mp4", resumable=True)
+        file_data = {
+            "name": filename.split('/')[4],
+            "parents": [folder_id]
+        }
+        file = drive_service.files().create(
+            body=file_data, media_body=media).execute()
+        return file.get('id')
 
 
 def get_video_by_name(name: str) -> str:
-    page_token = None
+    with lock:
+        page_token = None
 
-    while True:
-        response = drive_service.files().list(q=f"mimeType='video/mp4'"
-                                                f"and name='{name}'",
-                                                spaces='drive',
-                                                fields='nextPageToken, files(name, id)',
-                                                pageToken=page_token).execute()
-        page_token = response.get('nextPageToken', None)
+        while True:
+            response = drive_service.files().list(q=f"mimeType='video/mp4'"
+                                                    f"and name='{name}'",
+                                                    spaces='drive',
+                                                    fields='nextPageToken, files(name, id)',
+                                                    pageToken=page_token).execute()
+            page_token = response.get('nextPageToken', None)
 
-        if page_token is None:
-            break
+            if page_token is None:
+                break
 
-    return response['files'][0]['id']
-
-# Example
-
-# for i in d:
-#     # i в формате '2020-01-11_21:30_Зал_54.mp4'
-#     g = get_video_by_name(i)
-#     download_video(g, i)
+        return response['files'][0]['id']

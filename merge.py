@@ -2,86 +2,25 @@ import os
 import subprocess
 import requests
 from pathlib import Path
-from threading import Lock
-from driveAPI import *
-from threading import Thread
+from threading import RLock, Thread
+from driveAPI import get_video_by_name, upload_video, download_video
 
-lock = Lock()
+lock = RLock()
 home = str(Path.home())
 
-NVR_API_KEY = 'ce72d95a264248558f352768d620ca16'
 
-
-def merge_video(client_url: str, screen_num: str, cam_num: str, record_name: str, room_id: int, folder_id: str, calendar_id: str, event_id: str) -> None:
-    with lock:
-
-        first = subprocess.Popen(["ffmpeg", "-i", home + "/vids/vid_" + cam_num + ".mp4", "-i", home + "/vids/vid_" +
-                                  screen_num + ".mp4", "-filter_complex", "hstack=inputs=2", home + "/vids/vid_" +
-                                  record_name + "merged.mp4"], shell=False)
-        os.system("renice -n 20 %s" % (first.pid, ))
-        first.wait()
-
-    #    mid1 = subprocess.Popen(
-    #         ["ffmpeg", "-i", home + "/vids/vid_" + screen_num + ".mp4", "-s", "hd720",
-    #          home + "/vids/" + record_name + "mid_screen.mp4"], shell=False)
-    #    os.system("renice -n 20 %s" % (mid1.pid,))
-    #    mid1.wait()
-
-    #    mid2 = subprocess.Popen(
-    #         ["ffmpeg", "-i", home + "/vids/vid_" + cam_num + ".mp4", "-s", "hd720",
-    #          home + "/vids/" + record_name + "mid_cam.mp4"], shell=False)
-    #    os.system("renice -n 20 %s" % (mid2.pid,))
-    #    mid2.wait()
-
-    #    crop1 = subprocess.Popen(
-    #         ["ffmpeg", "-i", home + "/vids/" + record_name + "mid_cam.mp4", "-filter:v", "crop=640:720:40:0",
-    #          home + "/vids/" + record_name + "cropped_cam.mp4"], shell=False)
-
-    #    os.system("renice -n 20 %s" % (crop1.pid,))
-    #    crop1.wait()
-
-    #    second = subprocess.Popen(
-    #         ["ffmpeg", "-i", home + "/vids/" + record_name + "cropped_cam.mp4", "-i", home + "/vids/" +
-    #          record_name + "mid_screen.mp4", "-filter_complex", "hstack=inputs=2", home + "/vids/vid_" +
-    #          record_name + "merged.mp4"], shell=False)
-    #    os.system("renice -n 20 %s" % (second.pid,))
-    #    second.wait()
-
-        res = ""
-        if os.path.exists(home + "/vids/sound_" + record_name + ".aac"):
-            add_sound(record_name +
-                      "merged", record_name)
-        else:
-            res = "vid_"
-
-        res = requests.post(client_url + "/upload-merged",
-                            json={
-                                "file_name": res + record_name + "merged.mp4",
-                                "room_id": room_id,
-                                "folder_id" : folder_id,
-                                "calendar_id": calendar_id,
-                                "event_id": event_id
-                            },
-                            headers={'content-type': 'application/json',
-                                     "key": NVR_API_KEY}
-                            )
-        print(res.json())
-
-
-def add_sound(record_name: str, audio_cam_num: str) -> None:
-    proc = subprocess.Popen(["ffmpeg", "-i", home + "/vids/sound_" + audio_cam_num + ".aac", "-i",
-                             home + "/vids/vid_" + record_name +
-                             ".mp4", "-y", "-shortest", "-c", "copy",
-                             home + "/vids/" + record_name + ".mp4"], shell=False)
-    proc.wait()
-
-def merge_new(files: dict):
-    cam = sorted(files['camera'])
-    start_time = cam[0].split('_')[1]
-    end_time = cam[-1].split('_')[1]
-    slides = sorted(files['screen'])
-    vids_to_merge_cam = open(f'{home}/vids/vids_to_merge_cam_{start_time}_{end_time}.txt', 'a')
-    vids_to_merge_sld = open(f'{home}/vids/vids_to_merge_sld_{start_time}_{end_time}.txt', 'a')
+def hstack_camera_and_screen(cameras: list, screens: list,
+                             start_time: str, end_time: str,
+                             folder_id: str,
+                             calendar_id: str = None, event_id: str = None) -> None:
+    cam = sorted(cameras)
+    round_start_time = cam[0].split('_')[1]
+    round_end_time = cam[-1].split('_')[1]
+    slides = sorted(screens)
+    vids_to_merge_cam = open(
+        f'{home}/vids/vids_to_merge_cam_{round_start_time}_{round_end_time}.txt', 'a')
+    vids_to_merge_sld = open(
+        f'{home}/vids/vids_to_merge_sld_{round_start_time}_{round_end_time}.txt', 'a')
     for i in range(len(cam)):
         cam_file_id = get_video_by_name(cam[i])
         download_video(cam_file_id, cam[i])
@@ -91,50 +30,50 @@ def merge_new(files: dict):
         vids_to_merge_sld.write(f"file '{home}/vids/{slides[i]}'\n")
     vids_to_merge_cam.close()
     vids_to_merge_sld.close()
-    cam_proc = subprocess.Popen(['ffmpeg', '-f', 'concat', '-safe', '0', '-i', f'{home}/vids/vids_to_merge_cam_{start_time}_{end_time}.txt', '-c','copy', f'{home}/vids/cam_result_{start_time}_{end_time}.mp4'])
-    sld_proc = subprocess.Popen(['ffmpeg', '-f', 'concat', '-safe', '0', '-i', f'{home}/vids/vids_to_merge_sld_{start_time}_{end_time}.txt', '-c', 'copy', f'{home}/vids/sld_result_{start_time}_{end_time}.mp4'])
+    cam_proc = subprocess.Popen(['ffmpeg', '-f', 'concat', '-safe', '0', '-i',
+                                 f'{home}/vids/vids_to_merge_cam_{round_start_time}_{round_end_time}.txt', '-c', 'copy', f'{home}/vids/cam_result_{round_start_time}_{round_end_time}.mp4'])
+    sld_proc = subprocess.Popen(['ffmpeg', '-f', 'concat', '-safe', '0', '-i',
+                                 f'{home}/vids/vids_to_merge_sld_{round_start_time}_{round_end_time}.txt', '-c', 'copy', f'{home}/vids/sld_result_{round_start_time}_{round_end_time}.mp4'])
     cam_proc.wait()
     sld_proc.wait()
     for vid in cam:
         os.remove(f'{home}/vids/{vid}')
     for vid in slides:
         os.remove(f'{home}/vids/{vid}')
-    first = subprocess.Popen(['ffmpeg', '-i', f'{home}/vids/cam_result_{start_time}_{end_time}.mp4', '-i', f'{home}/vids/sld_result_{start_time}_{end_time}.mp4', '-filter_complex', 'hstack=inputs=2', f'{home}/vids/{start_time}_{end_time}_merged.mp4'], shell=False)
+    first = subprocess.Popen(['ffmpeg', '-i', f'{home}/vids/cam_result_{round_start_time}_{round_end_time}.mp4', '-i', f'{home}/vids/sld_result_{round_start_time}_{round_end_time}.mp4',
+                              '-filter_complex', 'hstack=inputs=2', f'{home}/vids/{round_start_time}_{round_end_time}_merged.mp4'], shell=False)
     os.system("renice -n 20 %s" % (first.pid, ))
     first.wait()
-    os.remove(f'{home}/vids/cam_result_{start_time}_{end_time}.mp4')
-    os.remove(f'{home}/vids/sld_result_{start_time}_{end_time}.mp4')
-    t1 = int(files['start_time'].split(':')[1]) - int(start_time.split(':')[1])
-    t2 = int(end_time.split(':')[1]) + 30 - int(files['end_time'].split(':')[1])
-    duration =  len(cam) * 30 - t1 - t2
-    if (duration // 60) > 9:
-        hours = f'{duration//60}'
-    else:
-        hours = f'0{duration//60}'
-    if (duration%60) > 9:
-        minutes = f'{duration%60}'
-    else:
-        minutes = f'0{duration%60}'
+    os.remove(f'{home}/vids/cam_result_{round_start_time}_{round_end_time}.mp4')
+    os.remove(f'{home}/vids/sld_result_{round_start_time}_{round_end_time}.mp4')
+    t1 = int(start_time.split(':')[1]) - \
+        int(round_start_time.split(':')[1])
+    t2 = int(round_end_time.split(':')[1]) + 30 - \
+        int(end_time.split(':')[1])
+    duration = len(cam) * 30 - t1 - t2
+    hours = f'{duration // 60}' if (duration //
+                                    60) > 9 else f'0{duration // 60}'
+    minutes = f'{duration % 60}' if (
+        duration % 60) > 9 else f'0{duration % 60}'
     d = f'{hours}:{minutes}:00'
-    if t1 > 9:
-        st = f'00:{t1}:00'
-    else:
-        st = f'00:0{t1}:00'
-    second = subprocess.Popen(['ffmpeg', '-ss', st, '-t', d, '-i', f'{home}/vids/{start_time}_{end_time}_merged.mp4', '-vcodec', 'copy', '-acodec', 'copy', f'{home}/vids/{start_time}_{end_time}_final.mp4'])
+    st = f'00:{t1}:00' if t1 > 9 else f'00:0{t1}:00'
+    second = subprocess.Popen(['ffmpeg', '-ss', st, '-t', d, '-i', f'{home}/vids/{round_start_time}_{round_end_time}_merged.mp4',
+                               '-vcodec', 'copy', '-acodec', 'copy', f'{home}/vids/{round_start_time}_{round_end_time}_final.mp4'])
     os.system("renice -n 20 %s" % (second.pid, ))
     second.wait()
-    # res = requests.post(files['url'] + "/upload-merged",
-    #                 json={
-    #                     "file_name": f"{start_time}_{end_time}_merged.mp4",
-    #                     "room_id": files['room_id'],
-    #                     "folder_id" : files['folder_id'],
-    #                     "calendar_id": files['calendar_id'],
-    #                     "event_id": files['event_id']
-    #                 },
-    #                 headers={'content-type': 'application/json',
-    #                             "key": NVR_API_KEY}
-    #                 )
-    # print(res.json())
+    os.remove(f'{home}/vids/{round_start_time}_{round_end_time}_merged.mp4')
 
-# merge_new({'camera':['2019-12-20_15:10_504_136'], 'screen':['2019-12-20_15:10_504_12']})
+    try:
+        file_id = upload_video(
+            f'{home}/vids/{round_start_time}_{round_end_time}_final.mp4', folder_id)
+        os.remove(f'{home}/vids/{round_start_time}_{round_end_time}_final.mp4')
+    except Exception as e:
+        print(e)
 
+    if calendar_id:
+        try:
+            add_attachment(calendar_id,
+                           event_id,
+                           file_id)
+        except Exception as e:
+            print(e)
