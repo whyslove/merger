@@ -10,7 +10,9 @@ HOME = str(Path.home())
 NVR_API_KEY = 'ce72d95a264248558f352768d620ca16'
 
 
-def merge_video(client_url: str, screen_num: str, cam_num: str, record_name: str, room_id: int, folder_id: str, calendar_id: str, event_id: str) -> None:
+def merge_video(client_url: str, screen_num: str,
+                cam_num: str, record_name: str, room_id: int,
+                folder_id: str, calendar_id: str, event_id: str) -> None:
     with lock:
         first = subprocess.Popen(["ffmpeg", "-i", HOME + "/vids/vid_" + cam_num + ".mp4", "-i", HOME + "/vids/vid_" +
                                   screen_num + ".mp4", "-filter_complex", "hstack=inputs=2", HOME + "/vids/vid_" +
@@ -70,46 +72,54 @@ def hstack_camera_and_screen(cameras: list, screens: list,
                              folder_id: str,
                              calendar_id: str = None, event_id: str = None) -> None:
     with lock:
-        cam = sorted(cameras)
-        round_start_time = cam[0].split('_')[1]
-        round_end_time = cam[-1].split('_')[1]
-        slides = sorted(screens)
+        cameras.sort()
+        screens.sort()
+        round_start_time = cameras[0].split('_')[1]
+        round_end_time = cameras[-1].split('_')[1]
         vids_to_merge_cam = open(
             f'{HOME}/vids/vids_to_merge_cam_{round_start_time}_{round_end_time}.txt', 'a')
-        vids_to_merge_sld = open(
-            f'{HOME}/vids/vids_to_merge_sld_{round_start_time}_{round_end_time}.txt', 'a')
-        for i in range(len(cam)):
-            cam_file_id = get_video_by_name(cam[i])
-            download_video(cam_file_id, cam[i])
-            vids_to_merge_cam.write(f"file '{HOME}/vids/{cam[i]}'\n")
-            sld_file_id = get_video_by_name(slides[i])
-            download_video(sld_file_id, slides[i])
-            vids_to_merge_sld.write(f"file '{HOME}/vids/{slides[i]}'\n")
+        vids_to_merge_screen = open(
+            f'{HOME}/vids/vids_to_merge_screen_{round_start_time}_{round_end_time}.txt', 'a')
+        for cam, screen in cameras, screens:
+            cam_file_id = get_video_by_name(cam)
+            download_video(cam_file_id, cam)
+            vids_to_merge_cam.write(f"file '{HOME}/vids/{cam}'\n")
+            screen_file_id = get_video_by_name(screen)
+            download_video(screen_file_id, screen)
+            vids_to_merge_screen.write(f"file '{HOME}/vids/{screen}'\n")
         vids_to_merge_cam.close()
-        vids_to_merge_sld.close()
+        vids_to_merge_screen.close()
         cam_proc = subprocess.Popen(['ffmpeg', '-f', 'concat', '-safe', '0', '-i',
-                                     f'{HOME}/vids/vids_to_merge_cam_{round_start_time}_{round_end_time}.txt', '-c', 'copy', f'{HOME}/vids/cam_result_{round_start_time}_{round_end_time}.mp4'])
+                                     f'{HOME}/vids/vids_to_merge_cam_{round_start_time}_{round_end_time}.txt',
+                                     '-c', 'copy', f'{HOME}/vids/cam_result_{round_start_time}_{round_end_time}.mp4'])
         sld_proc = subprocess.Popen(['ffmpeg', '-f', 'concat', '-safe', '0', '-i',
-                                     f'{HOME}/vids/vids_to_merge_sld_{round_start_time}_{round_end_time}.txt', '-c', 'copy', f'{HOME}/vids/sld_result_{round_start_time}_{round_end_time}.mp4'])
+                                     f'{HOME}/vids/vids_to_merge_screen_{round_start_time}_{round_end_time}.txt',
+                                     '-c', 'copy', f'{HOME}/vids/screen_result_{round_start_time}_{round_end_time}.mp4'])
         cam_proc.wait()
         sld_proc.wait()
-        for vid in cam:
-            os.remove(f'{HOME}/vids/{vid}')
-        for vid in slides:
-            os.remove(f'{HOME}/vids/{vid}')
-        first = subprocess.Popen(['ffmpeg', '-i', f'{HOME}/vids/cam_result_{round_start_time}_{round_end_time}.mp4', '-i', f'{HOME}/vids/sld_result_{round_start_time}_{round_end_time}.mp4',
+
+        os.remove(
+            f'{HOME}/vids/vids_to_merge_cam_{round_start_time}_{round_end_time}.txt')
+        os.remove(
+            f'{HOME}/vids/vids_to_merge_screen_{round_start_time}_{round_end_time}.txt')
+        for cam, screen in cameras, screens:
+            os.remove(f'{HOME}/vids/{cam}')
+            os.remove(f'{HOME}/vids/{screen}')
+
+        first = subprocess.Popen(['ffmpeg', '-i', f'{HOME}/vids/cam_result_{round_start_time}_{round_end_time}.mp4',
+                                  '-i', f'{HOME}/vids/screen_result_{round_start_time}_{round_end_time}.mp4',
                                   '-filter_complex', 'hstack=inputs=2', f'{HOME}/vids/{round_start_time}_{round_end_time}_merged.mp4'], shell=False)
         os.system("renice -n 20 %s" % (first.pid, ))
         first.wait()
         os.remove(
             f'{HOME}/vids/cam_result_{round_start_time}_{round_end_time}.mp4')
         os.remove(
-            f'{HOME}/vids/sld_result_{round_start_time}_{round_end_time}.mp4')
+            f'{HOME}/vids/screen_result_{round_start_time}_{round_end_time}.mp4')
         t1 = int(start_time.split(':')[1]) - \
             int(round_start_time.split(':')[1])
         t2 = int(round_end_time.split(':')[1]) + 30 - \
             int(end_time.split(':')[1])
-        duration = len(cam) * 30 - t1 - t2
+        duration = len(cameras) * 30 - t1 - t2
         hours = f'{duration // 60}' if (duration //
                                         60) > 9 else f'0{duration // 60}'
         minutes = f'{duration % 60}' if (
