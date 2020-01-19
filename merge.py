@@ -80,23 +80,25 @@ def hstack_camera_and_screen(cameras: list, screens: list,
             f'{HOME}/vids/vids_to_merge_cam_{round_start_time}_{round_end_time}.txt', 'a')
         vids_to_merge_screen = open(
             f'{HOME}/vids/vids_to_merge_screen_{round_start_time}_{round_end_time}.txt', 'a')
-        for cam, screen in cameras, screens:
-            cam_file_id = get_video_by_name(cam)
-            download_video(cam_file_id, cam)
-            vids_to_merge_cam.write(f"file '{HOME}/vids/{cam}'\n")
+
+        for cam, screen in zip(cameras, screens):
+            cam_file_id = get_video_by_name(cameras)
+            download_video(cam_file_id, cameras)
+            vids_to_merge_cam.write(f"file '{HOME}/vids/{cameras}'\n")
             screen_file_id = get_video_by_name(screen)
             download_video(screen_file_id, screen)
             vids_to_merge_screen.write(f"file '{HOME}/vids/{screen}'\n")
         vids_to_merge_cam.close()
         vids_to_merge_screen.close()
+
         cam_proc = subprocess.Popen(['ffmpeg', '-f', 'concat', '-safe', '0', '-i',
                                      f'{HOME}/vids/vids_to_merge_cam_{round_start_time}_{round_end_time}.txt',
                                      '-c', 'copy', f'{HOME}/vids/cam_result_{round_start_time}_{round_end_time}.mp4'])
-        sld_proc = subprocess.Popen(['ffmpeg', '-f', 'concat', '-safe', '0', '-i',
-                                     f'{HOME}/vids/vids_to_merge_screen_{round_start_time}_{round_end_time}.txt',
-                                     '-c', 'copy', f'{HOME}/vids/screen_result_{round_start_time}_{round_end_time}.mp4'])
+        screen_proc = subprocess.Popen(['ffmpeg', '-f', 'concat', '-safe', '0', '-i',
+                                        f'{HOME}/vids/vids_to_merge_screen_{round_start_time}_{round_end_time}.txt',
+                                        '-c', 'copy', f'{HOME}/vids/screen_result_{round_start_time}_{round_end_time}.mp4'])
         cam_proc.wait()
-        sld_proc.wait()
+        screen_proc.wait()
 
         os.remove(
             f'{HOME}/vids/vids_to_merge_cam_{round_start_time}_{round_end_time}.txt')
@@ -115,6 +117,7 @@ def hstack_camera_and_screen(cameras: list, screens: list,
             f'{HOME}/vids/cam_result_{round_start_time}_{round_end_time}.mp4')
         os.remove(
             f'{HOME}/vids/screen_result_{round_start_time}_{round_end_time}.mp4')
+
         t1 = int(start_time.split(':')[1]) - \
             int(round_start_time.split(':')[1])
         t2 = int(round_end_time.split(':')[1]) + 30 - \
