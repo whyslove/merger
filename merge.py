@@ -4,6 +4,7 @@ import requests
 from pathlib import Path
 from threading import RLock, Thread
 from driveAPI import get_video_by_name, upload_video, download_video
+import time
 
 lock = RLock()
 HOME = str(Path.home())
@@ -80,12 +81,24 @@ def hstack_camera_and_screen(cameras: list, screens: list,
             f'{HOME}/vids/vids_to_merge_cam_{round_start_time}_{round_end_time}.txt', 'a')
         vids_to_merge_screen = open(
             f'{HOME}/vids/vids_to_merge_screen_{round_start_time}_{round_end_time}.txt', 'a')
-
+        log = {'errors':0}
         for cam, screen in zip(cameras, screens):
-            cam_file_id = get_video_by_name(cam)
+            while True:
+                try:
+                    cam_file_id = get_video_by_name(cam)
+                    break
+                except:
+                    log['errors']+=1
+                    time.sleep(30)
             download_video(cam_file_id, cam)
             vids_to_merge_cam.write(f"file '{HOME}/vids/{cam}'\n")
-            screen_file_id = get_video_by_name(screen)
+            while True:
+                try:
+                    screen_file_id = get_video_by_name(screen)
+                    break
+                except:
+                    log['errors']+=1
+                    time.sleep(30)
             download_video(screen_file_id, screen)
             vids_to_merge_screen.write(f"file '{HOME}/vids/{screen}'\n")
         vids_to_merge_cam.close()
@@ -129,7 +142,7 @@ def hstack_camera_and_screen(cameras: list, screens: list,
 
         first = subprocess.Popen(['ffmpeg', '-i', f'{HOME}/vids/cam_clipped_{start_time}_{end_time}.mp4',
                                   '-i', f'{HOME}/vids/screen_clipped_{start_time}_{end_time}.mp4',
-                                  '-filter_complex', 'hstack=inputs=2', f'{HOME}/vids/{start_time}_{end_time}_merged.mp4'], shell=False)
+                                  '-filter_complex', 'hstack=inputs=2', f'{HOME}/vids/{start_time}_{end_time}_final.mp4'], shell=False)
         os.system("renice -n 20 %s" % (first.pid, ))
         first.wait()
         os.remove(
@@ -138,9 +151,9 @@ def hstack_camera_and_screen(cameras: list, screens: list,
             f'{HOME}/vids/screen_clipped_{start_time}_{end_time}.mp4')
         try:
             file_id = upload_video(
-                f'{HOME}/vids/{round_start_time}_{round_end_time}_final.mp4', folder_id)
+                f'{HOME}/vids/{start_time}_{end_time}_final.mp4', folder_id)
             os.remove(
-                f'{HOME}/vids/{round_start_time}_{round_end_time}_final.mp4')
+                f'{HOME}/vids/{start_time}_{end_time}_final.mp4')
         except Exception as e:
             print(e)
 
