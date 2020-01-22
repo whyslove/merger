@@ -1,5 +1,5 @@
 from threading import Thread
-from merge import hstack_camera_and_screen, process_wait
+from merge import hstack_camera_and_screen, process_wait, merge_video
 from flask import Flask, request, jsonify
 from driveAPI import get_video_by_name
 import time
