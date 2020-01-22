@@ -83,22 +83,10 @@ def hstack_camera_and_screen(cameras: list, screens: list,
             f'{HOME}/vids/vids_to_merge_screen_{round_start_time}_{round_end_time}.txt', 'a')
         log = {'errors':0}
         for cam, screen in zip(cameras, screens):
-            while True:
-                try:
-                    cam_file_id = get_video_by_name(cam)
-                    break
-                except:
-                    log['errors']+=1
-                    time.sleep(30)
+            cam_file_id = get_video_by_name(cam)
             download_video(cam_file_id, cam)
             vids_to_merge_cam.write(f"file '{HOME}/vids/{cam}'\n")
-            while True:
-                try:
-                    screen_file_id = get_video_by_name(screen)
-                    break
-                except:
-                    log['errors']+=1
-                    time.sleep(30)
+            screen_file_id = get_video_by_name(screen)
             download_video(screen_file_id, screen)
             vids_to_merge_screen.write(f"file '{HOME}/vids/{screen}'\n")
         vids_to_merge_cam.close()
@@ -164,3 +152,18 @@ def hstack_camera_and_screen(cameras: list, screens: list,
                                file_id)
             except Exception as e:
                 print(e)
+
+
+def process_wait(cameras: list, screens: list,
+                             start_time: str, end_time: str,
+                             folder_id: str,
+                             calendar_id: str = None, event_id: str = None):
+    while True:
+        try:
+            get_video_by_name(cameras.sort()[-1])
+            get_video_by_name(screens.sort()[-1])
+            hstack_camera_and_screen(cameras, screens, start_time, end_time, folder_id, calendar_id, event_id)
+            break
+        except:
+            time.sleep(300)
+        
