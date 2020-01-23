@@ -107,7 +107,7 @@ def hstack_camera_and_screen(cameras: list, screens: list,
         hours = f'{duration // 60}' if (duration //60) > 9 else f'0{duration // 60}'
         minutes = f'{duration % 60}' if (duration % 60) > 9 else f'0{duration % 60}'
         vid_dur = f'{hours}:{minutes}:00'
-        vid_start = f'00:{time_to_cut_1}:00' if t1 > 9 else f'00:0{time_to_cut_1}:00'
+        vid_start = f'00:{time_to_cut_1}:00' if time_to_cut_1 > 9 else f'00:0{time_to_cut_1}:00'
         cam_cutting = subprocess.Popen(['ffmpeg', '-ss', vid_start, '-t', vid_dur, '-i',  f'{HOME}/vids/cam_result_{round_start_time}_{round_end_time}.mp4',
                                    '-vcodec', 'copy', '-acodec', 'copy',  f'{HOME}/vids/cam_clipped_{start_time}_{end_time}.mp4'])
         os.system("renice -n 20 %s" % (cam_cutting.pid, ))
@@ -158,12 +158,14 @@ def process_wait(cameras: list, screens: list,
                              start_time: str, end_time: str,
                              folder_id: str,
                              calendar_id: str = None, event_id: str = None):
+    last_cam = sorted(cameras)[-1]
+    last_screen = sorted(screens)[-1]
     while True:
         try:
-            get_video_by_name(cameras.sort()[-1])
-            get_video_by_name(screens.sort()[-1])
+            get_video_by_name(last_cam)
+            get_video_by_name(last_screen)
             hstack_camera_and_screen(cameras, screens, start_time, end_time, folder_id, calendar_id, event_id)
             break
-        except:
+        except Exception as e:
             time.sleep(300)
         
