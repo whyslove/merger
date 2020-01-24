@@ -81,7 +81,6 @@ def hstack_camera_and_screen(cameras: list, screens: list,
             f'{HOME}/vids/vids_to_merge_cam_{round_start_time}_{round_end_time}.txt', 'a')
         vids_to_merge_screen = open(
             f'{HOME}/vids/vids_to_merge_screen_{round_start_time}_{round_end_time}.txt', 'a')
-        log = {'errors': 0}
         for cam, screen in zip(cameras, screens):
             cam_file_id = get_video_by_name(cam)
             download_video(cam_file_id, cam)
@@ -128,7 +127,7 @@ def hstack_camera_and_screen(cameras: list, screens: list,
             f'{HOME}/vids/vids_to_merge_cam_{round_start_time}_{round_end_time}.txt')
         os.remove(
             f'{HOME}/vids/vids_to_merge_screen_{round_start_time}_{round_end_time}.txt')
-        for cam, screen in cameras, screens:
+        for cam, screen in zip(cameras, screens):
             os.remove(f'{HOME}/vids/{cam}')
             os.remove(f'{HOME}/vids/{screen}')
 
