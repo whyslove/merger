@@ -81,7 +81,7 @@ def hstack_camera_and_screen(cameras: list, screens: list,
             f'{HOME}/vids/vids_to_merge_cam_{round_start_time}_{round_end_time}.txt', 'a')
         vids_to_merge_screen = open(
             f'{HOME}/vids/vids_to_merge_screen_{round_start_time}_{round_end_time}.txt', 'a')
-        log = {'errors':0}
+        log = {'errors': 0}
         for cam, screen in zip(cameras, screens):
             cam_file_id = get_video_by_name(cam)
             download_video(cam_file_id, cam)
@@ -101,18 +101,22 @@ def hstack_camera_and_screen(cameras: list, screens: list,
         cam_proc.wait()
         screen_proc.wait()
 
-        time_to_cut_1 = int(start_time.split(':')[1]) - int(round_start_time.split(':')[1])
-        time_to_cut_2 = int(round_end_time.split(':')[1]) + 30 - int(end_time.split(':')[1])
+        time_to_cut_1 = int(start_time.split(
+            ':')[1]) - int(round_start_time.split(':')[1])
+        time_to_cut_2 = int(round_end_time.split(
+            ':')[1]) + 30 - int(end_time.split(':')[1])
         duration = len(cameras) * 30 - time_to_cut_1 - time_to_cut_2
-        hours = f'{duration // 60}' if (duration //60) > 9 else f'0{duration // 60}'
-        minutes = f'{duration % 60}' if (duration % 60) > 9 else f'0{duration % 60}'
+        hours = f'{duration // 60}' if (duration //
+                                        60) > 9 else f'0{duration // 60}'
+        minutes = f'{duration % 60}' if (
+            duration % 60) > 9 else f'0{duration % 60}'
         vid_dur = f'{hours}:{minutes}:00'
         vid_start = f'00:{time_to_cut_1}:00' if time_to_cut_1 > 9 else f'00:0{time_to_cut_1}:00'
-        cam_cutting = subprocess.Popen(['ffmpeg', '-ss', vid_start, '-t', vid_dur, '-i',  f'{HOME}/vids/cam_result_{round_start_time}_{round_end_time}.mp4',
-                                   '-vcodec', 'copy', '-acodec', 'copy',  f'{HOME}/vids/cam_clipped_{start_time}_{end_time}.mp4'])
+        cam_cutting = subprocess.Popen(['ffmpeg', '-ss', vid_start, '-t', vid_dur, '-i', f'{HOME}/vids/cam_result_{round_start_time}_{round_end_time}.mp4',
+                                        '-vcodec', 'copy', '-acodec', 'copy', f'{HOME}/vids/cam_clipped_{start_time}_{end_time}.mp4'])
         os.system("renice -n 20 %s" % (cam_cutting.pid, ))
-        screen_cutting = subprocess.Popen(['ffmpeg', '-ss', vid_start, '-t', vid_dur, '-i',  f'{HOME}/vids/screen_result_{round_start_time}_{round_end_time}.mp4',
-                                   '-vcodec', 'copy', '-acodec', 'copy',  f'{HOME}/vids/screen_clipped_{start_time}_{end_time}.mp4'])
+        screen_cutting = subprocess.Popen(['ffmpeg', '-ss', vid_start, '-t', vid_dur, '-i', f'{HOME}/vids/screen_result_{round_start_time}_{round_end_time}.mp4',
+                                           '-vcodec', 'copy', '-acodec', 'copy', f'{HOME}/vids/screen_clipped_{start_time}_{end_time}.mp4'])
         os.system("renice -n 20 %s" % (screen_cutting.pid, ))
         screen_cutting.wait()
         cam_cutting.wait()
@@ -155,17 +159,20 @@ def hstack_camera_and_screen(cameras: list, screens: list,
 
 
 def process_wait(cameras: list, screens: list,
-                             start_time: str, end_time: str,
-                             folder_id: str,
-                             calendar_id: str = None, event_id: str = None):
+                 start_time: str, end_time: str,
+                 folder_id: str,
+                 calendar_id: str = None, event_id: str = None):
     last_cam = sorted(cameras)[-1]
     last_screen = sorted(screens)[-1]
     while True:
         try:
             get_video_by_name(last_cam)
             get_video_by_name(last_screen)
-            hstack_camera_and_screen(cameras, screens, start_time, end_time, folder_id, calendar_id, event_id)
+            Thread(target=hstack_camera_and_screen,
+                   args=(cameras, screens,
+                         start_time, end_time,
+                         folder_id,
+                         calendar_id, event_id), daemon=True).start()
             break
         except Exception as e:
             time.sleep(300)
-        
