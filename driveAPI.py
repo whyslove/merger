@@ -1,18 +1,20 @@
 from __future__ import print_function
-import pickle
-import os.path
-from googleapiclient.discovery import build
-from google_auth_oauthlib.flow import InstalledAppFlow
-from google.auth.transport.requests import Request
-from googleapiclient.http import MediaIoBaseDownload, MediaFileUpload
+
 import io
-from datetime import datetime
+import os.path
+import pickle
 from pathlib import Path
+
+from google.auth.transport.requests import Request
+from google_auth_oauthlib.flow import InstalledAppFlow
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaIoBaseDownload, MediaFileUpload
+
 home = str(Path.home())
 
 from threading import RLock
-lock = RLock()
 
+lock = RLock()
 
 SCOPES = 'https://www.googleapis.com/auth/drive'
 """
@@ -70,9 +72,9 @@ def get_video_by_name(name: str) -> str:
         while True:
             response = drive_service.files().list(q=f"mimeType='video/mp4'"
                                                     f"and name='{name}'",
-                                                    spaces='drive',
-                                                    fields='nextPageToken, files(name, id)',
-                                                    pageToken=page_token).execute()
+                                                  spaces='drive',
+                                                  fields='nextPageToken, files(name, id)',
+                                                  pageToken=page_token).execute()
             page_token = response.get('nextPageToken', None)
 
             if page_token is None:

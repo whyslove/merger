@@ -1,16 +1,13 @@
 from __future__ import print_function
-import datetime
-import pickle
+
 import os.path
-from googleapiclient.discovery import build
-from google_auth_oauthlib.flow import InstalledAppFlow
-from google.auth.transport.requests import Request
-import json
-from datetime import datetime, timedelta
-
-from nvrAPI.models import nvr_db_context, Room
-
+import pickle
 from threading import RLock
+
+from google.auth.transport.requests import Request
+from google_auth_oauthlib.flow import InstalledAppFlow
+from googleapiclient.discovery import build
+
 lock = RLock()
 
 SCOPES = 'https://www.googleapis.com/auth/calendar'
@@ -45,7 +42,7 @@ def add_attachment(calendar_id: str, event_id: str, file_id: str) -> None:
         event = calendar_service.events().get(
             calendarId=calendar_id, eventId=event_id).execute()
         description = event.get('description', '') + \
-            f"\nhttps://drive.google.com/a/auditory.ru/file/d/{file_id}/view?usp=drive_web"
+                      f"\nhttps://drive.google.com/a/auditory.ru/file/d/{file_id}/view?usp=drive_web"
         changes = {
             'description': description
         }

@@ -1,8 +1,9 @@
 from threading import Thread
-from merge import hstack_camera_and_screen, process_wait, merge_video
+
 from flask import Flask, request, jsonify
+
 from driveAPI import get_video_by_name
-import time
+from merge import hstack_camera_and_screen, process_wait
 
 app = Flask("NVR_VIDEO_MERGE")
 
@@ -10,17 +11,6 @@ app = Flask("NVR_VIDEO_MERGE")
 @app.route('/', methods=["GET", "POST"])
 def main():
     return "Merge server v1.0", 200
-
-
-@app.route('/merge', methods=["POST"])
-def start_merge():
-    json = request.get_json(force=True)
-    Thread(target=merge_video,
-           args=(json['url'], json["screen_num"], json["cam_num"], json["record_name"],
-                 json["room_id"], json["folder_id"], json['calendar_id'], json['event_id']),
-           daemon=True
-           ).start()
-    return "Merge started", 200
 
 
 @app.route('/merge-new', methods=["POST"])
