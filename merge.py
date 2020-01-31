@@ -109,7 +109,7 @@ def hstack_camera_and_screen(cameras: list, screens: list,
 def process_wait(cameras: list, screens: list,
                  start_time: str, end_time: str,
                  folder_id: str,
-                 calendar_id: str = None, event_id: str = None):
+                 calendar_id: str = None, event_id: str = None) -> None:
     last_cam = sorted(cameras)[-1]
     last_screen = sorted(screens)[-1]
     while True:
