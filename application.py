@@ -3,6 +3,7 @@ from threading import Thread
 from flask import Flask, request, jsonify
 
 from driveAPI import get_video_by_name
+from calendarAPI import get_events
 from merge import hstack_camera_and_screen, process_wait
 
 app = Flask("NVR_VIDEO_MERGE")
@@ -13,10 +14,17 @@ def main():
     return "Merge server v1.0", 200
 
 
+@app.route('/gcalendar-webhook', methods=["POST"])
+def gcalendar_webhook():
+    json_data = request.get_json()
+    calendar_id = json_data['calendar_id']
+    # Проход по комнате и patch её календарных событий
+    return "", 200
+
+
 @app.route('/merge-new', methods=["POST"])
 def start_new_merge():
     json = request.get_json(force=True)
-    print(json)
     if len(json['cameras']) != len(json['screens']):
         resp = {'error': 'The number of camera and screen files should be equal'}
         return jsonify(resp), 400

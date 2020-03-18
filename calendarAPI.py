@@ -7,6 +7,7 @@ from threading import RLock
 from google.auth.transport.requests import Request
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
+from datetime import datetime, timedelta
 
 lock = RLock()
 
@@ -42,10 +43,27 @@ def add_attachment(calendar_id: str, event_id: str, file_id: str) -> None:
         event = calendar_service.events().get(
             calendarId=calendar_id, eventId=event_id).execute()
         description = event.get('description', '') + \
-                      f"\nhttps://drive.google.com/a/auditory.ru/file/d/{file_id}/view?usp=drive_web"
+            f"\nhttps://drive.google.com/a/auditory.ru/file/d/{file_id}/view?usp=drive_web"
         changes = {
             'description': description
         }
         calendar_service.events().patch(calendarId=calendar_id, eventId=event_id,
                                         body=changes,
                                         supportsAttachments=True).execute()
+
+
+def get_events(calendar_id: str) -> dict:
+    """
+    Returns start/end time and summary of the next event of the "room" calendar.
+    """
+    with lock:
+        now = datetime.utcnow()
+        time_min = now - timedelta(days=30)
+        time_max = now + timedelta(days=30)
+        events_result = calendar_service.events().list(calendarId=calendar_id,
+                                                       timeMin=time_min.isoformat() + 'Z',
+                                                       timeMax=time_max.isoformat() + 'Z',
+                                                       singleEvents=True,
+                                                       orderBy='startTime').execute()
+        event = events_result['items']
+        return event
