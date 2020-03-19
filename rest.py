@@ -29,7 +29,7 @@ def gcalendar_webhook():
     session = Session()
     records = session.query(Record).filter(
         Record.room_name == room_name, Record.event_id != None).all()
-    calendar_events = events.keys()
+    calendar_events = set(events.keys())
     db_events = {record.event_id for record in records}
 
     new_events = calendar_events - db_events
