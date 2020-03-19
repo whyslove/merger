@@ -18,5 +18,6 @@ class Record(Base):
     date = Column(Date, nullable=False)
     start_time = Column(Time, nullable=False)
     end_time = Column(Time, nullable=False)
+    folder_id = Column(String(200), nullable=False)
     event_src = Column(String(200))
     event_id = Column(String(200))
