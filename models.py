@@ -21,3 +21,13 @@ class Record(Base):
     folder_id = Column(String(200), nullable=False)
     event_src = Column(String(200))
     event_id = Column(String(200))
+
+    def update(self, **kwargs):
+        new_record.event_id = kwargs['id']
+        new_record.event_src = kwargs['htmlLink']
+        new_record.event_name = kwargs.get('summary')
+        new_record.date = kwargs['start']['dateTime'].split('T')[0]
+        new_record.start_time = kwargs['start']['dateTime'].split('T')[1][:5]
+        new_record.end_time = kwargs['end']['dateTime'].split('T')[1][:5]
+        new_record.room_name = kwargs['room_name']
+        new_record.folder_id = ''

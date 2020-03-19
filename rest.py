@@ -7,6 +7,8 @@ from calendarAPI import get_events
 from merge import hstack_camera_and_screen, process_wait
 from models import Session, Record
 
+from datetime import date
+
 app = Flask("NVR_VIDEO_MERGE")
 
 
@@ -17,6 +19,7 @@ def main():
 
 @app.route('/gcalendar-webhook', methods=["POST"])
 def gcalendar_webhook():
+    # TODO нужно брать id папки диска как-то
     json_data = request.get_json()
     calendar_id = json_data['calendar_id']
 
@@ -42,27 +45,27 @@ def gcalendar_webhook():
         event = events[event_id]
         start_date = event['start']['dateTime'].split('T')[0]
         end_date = event['end']['dateTime'].split('T')[0]
+
         if start_date != end_date:
             continue
-        new_record = Record()
-        new_record.event_id = event['id']
-        new_record.event_src = event['htmlLink']
-        new_record.event_name = event.get('summary')
-        new_record.date = start_date
-        new_record.start_time = event['start']['dateTime'].split('T')[1][:5]
-        new_record.end_time = event['end']['dateTime'].split('T')[1][:5]
-        new_record.room_name = room_name
-        new_record.folder_id = ''
 
+        new_record = Record()
+        new_record.update(**event, room_name=room_name)
         session.add(new_record)
 
     for event_id in events_to_check:
-        # TODO
-        pass
+        event = events[event_id]
+        if date.today().isoformat() != event['updated'].split('T')[0]:
+            continue
+
+        record = session.query(Record).filter(
+            Record.event_id == event_id).first()
+        record.update(**event, room_name=room_name)
 
     session.commit()
     session.close()
-    return "", 200
+
+    return "Calendar events patched", 200
 
 
 @app.route('/merge', methods=["POST"])
