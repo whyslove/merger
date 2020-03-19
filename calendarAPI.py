@@ -53,9 +53,6 @@ def add_attachment(calendar_id: str, event_id: str, file_id: str) -> None:
 
 
 def get_events(calendar_id: str) -> dict:
-    """
-    Returns start/end time and summary of the next event of the "room" calendar.
-    """
     with lock:
         now = datetime.utcnow()
         time_min = now - timedelta(days=30)
@@ -65,5 +62,9 @@ def get_events(calendar_id: str) -> dict:
                                                        timeMax=time_max.isoformat() + 'Z',
                                                        singleEvents=True,
                                                        orderBy='startTime').execute()
-        event = events_result['items']
-        return event
+        events = events_result['items']
+        events = {event['id']: event for event in events}
+
+        calendar = calendar_service.calendars().get(calendarId=calendar_id).execute()
+
+        return events, calendar
