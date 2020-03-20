@@ -18,16 +18,32 @@ class Record(Base):
     date = Column(Date, nullable=False)
     start_time = Column(Time, nullable=False)
     end_time = Column(Time, nullable=False)
-    folder_id = Column(String(200), nullable=False)
+
     event_src = Column(String(200))
     event_id = Column(String(200))
 
     def update(self, **kwargs):
-        new_record.event_id = kwargs['id']
-        new_record.event_src = kwargs['htmlLink']
+        new_record.event_id = kwargs.get('id')
+        new_record.event_src = kwargs.get('htmlLink')
         new_record.event_name = kwargs.get('summary')
         new_record.date = kwargs['start']['dateTime'].split('T')[0]
         new_record.start_time = kwargs['start']['dateTime'].split('T')[1][:5]
         new_record.end_time = kwargs['end']['dateTime'].split('T')[1][:5]
         new_record.room_name = kwargs['room_name']
-        new_record.folder_id = ''
+
+
+class Room(Base):
+    __tablename__ = 'rooms'
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String(100), nullable=False)
+    tracking_state = Column(Boolean, default=False)
+    drive = Column(String(200))
+    calendar = Column(String(200))
+
+    sound_source = Column(String(100))
+    main_source = Column(String(100))
+    tracking_source = Column(String(100))
+    screen_source = Column(String(100))
+
+    auto_control = Column(Boolean, default=True)

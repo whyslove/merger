@@ -65,6 +65,4 @@ def get_events(calendar_id: str) -> dict:
         events = events_result['items']
         events = {event['id']: event for event in events}
 
-        calendar = calendar_service.calendars().get(calendarId=calendar_id).execute()
-
-        return events, calendar
+        return events

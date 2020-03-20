@@ -5,7 +5,7 @@ from flask import Flask, request, jsonify
 from driveAPI import get_video_by_name
 from calendarAPI import get_events
 from merge import hstack_camera_and_screen, process_wait
-from models import Session, Record
+from models import Session, Record, Room
 
 from datetime import date
 
@@ -19,16 +19,15 @@ def main():
 
 @app.route('/gcalendar-webhook', methods=["POST"])
 def gcalendar_webhook():
-    # TODO нужно брать id папки диска как-то
     json_data = request.get_json()
     calendar_id = json_data['calendar_id']
 
-    events, calendar = get_events(calendar_id)
-    room_name = calendar['summary']
+    events = get_events(calendar_id)
 
     session = Session()
+    room = session.query(Room).filter(Room.calendar == calendar_id).first()
     records = session.query(Record).filter(
-        Record.room_name == room_name, Record.event_id != None).all()
+        Record.room_name == room.name, Record.event_id != None).all()
     calendar_events = set(events.keys())
     db_events = {record.event_id for record in records}
 
@@ -50,7 +49,7 @@ def gcalendar_webhook():
             continue
 
         new_record = Record()
-        new_record.update(**event, room_name=room_name)
+        new_record.update(**event, room_name=room.name)
         session.add(new_record)
 
     for event_id in events_to_check:
@@ -60,12 +59,12 @@ def gcalendar_webhook():
 
         record = session.query(Record).filter(
             Record.event_id == event_id).first()
-        record.update(**event, room_name=room_name)
+        record.update(**event, room_name=room.name)
 
     session.commit()
     session.close()
 
-    return "Calendar events patched", 200
+    return f"Room {room.name}: calendar events patched", 200
 
 
 @app.route('/merge', methods=["POST"])
