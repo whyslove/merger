@@ -2,8 +2,8 @@ import time
 
 import schedule
 
-from models import Session, Record, Room
 from driveAPI import get_folders_by_name
+from models import Session, Record, Room
 
 
 class DaemonApp:
@@ -18,14 +18,17 @@ class DaemonApp:
     def invoke_merge_events(self):
         session = Session()
         self.records = session.query(Record).all()
-        session.close()
 
         for record in self.records:
             try:
                 pass
                 # TODO
+
+                session.delete(record)
             except:
                 pass
+
+        session.close()
 
     def get_folder_id(self, date: str, room: Room):
         folders = get_folders_by_name(date)

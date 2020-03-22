@@ -1,13 +1,9 @@
-from threading import Thread
+from datetime import date
 
 from flask import Flask, request, jsonify
 
-from driveAPI import get_video_by_name
 from calendarAPI import get_events
-from merge import hstack_camera_and_screen, process_wait
 from models import Session, Record, Room
-
-from datetime import date
 
 app = Flask("NVR_VIDEO_MERGE")
 
@@ -69,20 +65,34 @@ def gcalendar_webhook():
 
 @app.route('/merge', methods=["POST"])
 def start_new_merge():
-    # TODO: переделать весь метод
-    json = request.get_json(force=True)
-    if len(json['cameras']) != len(json['screens']):
-        resp = {'error': 'The number of camera and screen files should be equal'}
-        return jsonify(resp), 400
-    try:
-        get_video_by_name(json['cameras'][-1])
-        get_video_by_name(json['screens'][-1])
-    except:
-        Thread(target=process_wait, kwargs={**json}, daemon=True).start()
-        return "Videos are not uploaded yet", 200
-    Thread(target=hstack_camera_and_screen,
-           kwargs={**json}, daemon=True).start()
-    return "Merge event added to queue", 201
+    json = request.get_json()
+
+    event_name = json.get("event_name")
+    room_name = json.get("room_name")
+    date = json.get("date")
+    start_time = json.get("start_time")
+    end_time = json.get("end_time")
+
+    if not event_name:
+        return jsonify({"error": "'event_name' required"}), 400
+    if not room_name:
+        return jsonify({"error": "'room_name' required"}), 400
+    if not date:
+        return jsonify({"error": "'date' required"}), 400
+    if not start_time:
+        return jsonify({"error": "'start_time' required"}), 400
+    if not end_time:
+        return jsonify({"error": "'end_time' required"}), 400
+
+    record = Record(event_name=event_name, room_name=room_name, date=date,
+                    start_time=start_time, end_time=end_time)
+
+    session = Session()
+    session.add(record)
+    session.commit()
+    session.close()
+
+    return f"Merge event '{event_name}' added to queue", 201
 
 
 if __name__ == '__main__':
