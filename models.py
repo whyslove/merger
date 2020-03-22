@@ -19,7 +19,6 @@ class Record(Base):
     start_time = Column(String, nullable=False)
     end_time = Column(String, nullable=False)
 
-    event_src = Column(String(200))
     event_id = Column(String(200))
 
     def __init__(self, **kwargs):
@@ -28,12 +27,10 @@ class Record(Base):
         self.date = kwargs.get('date')
         self.start_time = kwargs.get('start_time')
         self.end_time = kwargs.get('end_time')
-        self.event_src = kwargs.get('event_src')
         self.event_id = kwargs.get('event_id')
 
     def update(self, **kwargs):
         self.event_id = kwargs.get('id')
-        self.event_src = kwargs.get('htmlLink')
         self.event_name = kwargs.get('summary')
         self.date = kwargs['start']['dateTime'].split('T')[0]
         self.start_time = kwargs['start']['dateTime'].split('T')[1][:5]
