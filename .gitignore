@@ -1,9 +1,7 @@
 # Custom
-pycache
 /dist/
 node_modules/
 .DS_Store
-venv/
 .vscode/
 *.cpython*
 logs/

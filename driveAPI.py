@@ -81,3 +81,21 @@ def get_video_by_name(name: str) -> str:
                 break
 
         return response['files'][0]['id']
+
+
+def get_folders_by_name(name):
+    with lock:
+        page_token = None
+
+        while True:
+            response = drive_service.files().list(q=f"mimeType='application/vnd.google-apps.folder'"
+                                                    f"and name='{name}'",
+                                                  spaces='drive',
+                                                  fields='nextPageToken, files(name, id, parents)',
+                                                  pageToken=page_token).execute()
+            page_token = response.get('nextPageToken', None)
+
+            if page_token is None:
+                break
+
+        return {folder['id']: folder.get('parents', [''])[0] for folder in response['files']}
