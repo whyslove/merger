@@ -49,6 +49,9 @@ def get_files(record: Record, room: Room) -> tuple:
         f"%Y-%m-%d_%H:%M_{room.name}_{screen_source}.mp4") for date in dates]
 
     for cam_file_name, screen_file_name in zip(cam_file_names, screen_file_names):
+
+        # TODO 23.03.2020 backups for both sources
+
         cam_file_id = get_video_by_name(cam_file_name)
         download_video(cam_file_id, cam_file_name)
 
