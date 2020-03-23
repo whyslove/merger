@@ -1,3 +1,5 @@
+import math
+from PIL import Image, ImageChops
 import os
 import subprocess
 from datetime import datetime
@@ -23,6 +25,8 @@ def get_dates_between_timestamps(start_timestamp: int, stop_timestamp: int) -> l
 
     return dates
 
+# add smart merge
+
 
 def get_files(record: Record, room: Room) -> tuple:
     cameras_file_name = f"cam_vids_to_merge_{record.start_time}_{record.end_time}.txt"
@@ -43,20 +47,41 @@ def get_files(record: Record, room: Room) -> tuple:
     main_source = room.main_source.split('.')[-1].split('/')[0]
     screen_source = room.screen_source.split('.')[-1].split('/')[0]
 
+    reserve_cam = next(
+        source for source in room.sources if source.merge == "backup-right")
+    backup_source = reserve_cam.ip.split('.')[-1]
+
     cam_file_names = [date.strftime(
         f"%Y-%m-%d_%H:%M_{room.name}_{main_source}.mp4") for date in dates]
     screen_file_names = [date.strftime(
         f"%Y-%m-%d_%H:%M_{room.name}_{screen_source}.mp4") for date in dates]
+    reserve_cam_file_names = [date.strftime(
+        f"%Y-%m-%d_%H:%M_{room.name}_{backup_source}.mp4") for date in dates]
 
-    for cam_file_name, screen_file_name in zip(cam_file_names, screen_file_names):
-
-        # TODO 23.03.2020 backups for both sources
-
+    for cam_file_name, screen_file_name, reserve_cam_file_name in zip(cam_file_names, screen_file_names, reserve_cam_file_names):
         cam_file_id = get_video_by_name(cam_file_name)
         download_video(cam_file_id, cam_file_name)
 
         screen_file_id = get_video_by_name(screen_file_name)
         download_video(screen_file_id, screen_file_name)
+        # Проверка на полотна
+        cut_proc = subprocess.Popen(['ffmpeg', '-ss', '00:00:01', '-i',
+                                     f'{HOME}/vids/{screen_file_name}',
+                                     '-frames:', '1', '-y', 'cutted_frame.png', ])
+        cut_proc.wait()
+        im_example = Image.open(r"example.png")
+        im_cutted = Image.open(r"cutted_frame.png")
+        try:
+            equal(im_example, im_cutted)
+        except:
+            screens_file.write(f"file '{HOME}/vids/{screen_file_name}'\n")
+        else:
+            # r_cam это список резервных камер
+            reserve_cam_file_id = get_video_by_name(reserve_cam_file_name)
+            download_video(reserve_cam_file_id, reserve_cam_file_name)
+            screens_file.write(f"file '{HOME}/vids/{reserve_cam_file_name}'\n")
+        im_example.close()
+        im_cutted.close()
 
         cams_file.write(f"file '{HOME}/vids/{cam_file_name}'")
         screens_file.write(f"file '{HOME}/vids/{screen_file_name}'")
@@ -90,12 +115,13 @@ def create_merge(cameras_file_name: str, screens_file_name: str,
         time_to_cut_2 = int(round_end_time.split(
             ':')[1]) + 30 - int(end_time.split(':')[1])
 
-        duration = len(open(cameras_file_name).readlines()) * 30 - time_to_cut_1 - time_to_cut_2
+        duration = len(open(cameras_file_name).readlines()) * \
+            30 - time_to_cut_1 - time_to_cut_2
 
         hours = f'{duration // 60}' if (duration //
                                         60) > 9 else f'0{duration // 60}'
         minutes = f'{duration % 60}' if (
-                                                duration % 60) > 9 else f'0{duration % 60}'
+            duration % 60) > 9 else f'0{duration % 60}'
         vid_dur = f'{hours}:{minutes}:00'
         vid_start = f'00:{time_to_cut_1}:00' if time_to_cut_1 > 9 else f'00:0{time_to_cut_1}:00'
         cam_cutting = subprocess.Popen(['ffmpeg', '-ss', vid_start, '-t', vid_dur, '-i',
@@ -151,3 +177,7 @@ def create_merge(cameras_file_name: str, screens_file_name: str,
                                file_id)
             except Exception as e:
                 print(e)
+
+
+def equal(im1, im2):  # additional function for comparing images
+    return ImageChops.difference(im1, im2).getbbox() is None
