@@ -45,7 +45,7 @@ def gcalendar_webhook():
             continue
 
         new_record = Record()
-        new_record.update(**event, room_name=room.name)
+        new_record.update_from_calendar(**event, room_name=room.name)
         session.add(new_record)
 
     for event_id in events_to_check:
@@ -55,7 +55,7 @@ def gcalendar_webhook():
 
         record = session.query(Record).filter(
             Record.event_id == event_id).first()
-        record.update(**event, room_name=room.name)
+        record.update_from_calendar(**event, room_name=room.name)
 
     session.commit()
     session.close()
@@ -72,6 +72,7 @@ def start_new_merge():
     date = json.get("date")
     start_time = json.get("start_time")
     end_time = json.get("end_time")
+    user_email = json.get('user_email')
 
     if not event_name:
         return jsonify({"error": "'event_name' required"}), 400
@@ -83,12 +84,16 @@ def start_new_merge():
         return jsonify({"error": "'start_time' required"}), 400
     if not end_time:
         return jsonify({"error": "'end_time' required"}), 400
-
-    record = Record(event_name=event_name, room_name=room_name, date=date,
-                    start_time=start_time, end_time=end_time)
+    if not user_email:
+        return jsonify({"error": "'user_email' required"}), 400
 
     session = Session()
+
+    record = Record(event_name=event_name, room_name=room_name, date=date,
+                    start_time=start_time, end_time=end_time, user_email=user_email)
+
     session.add(record)
+
     session.commit()
     session.close()
 

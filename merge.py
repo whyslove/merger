@@ -161,12 +161,10 @@ def create_merge(cameras_file_name: str, screens_file_name: str,
         os.remove(
             f'{HOME}/vids/screen_clipped_{start_time}_{end_time}.mp4')
         try:
-            file_id = upload_video(
+            file_id, file_url = upload_video(
                 f'{HOME}/vids/{start_time}_{end_time}_final.mp4', folder_id)
             os.remove(
                 f'{HOME}/vids/{start_time}_{end_time}_final.mp4')
-
-            # TODO 22.03.2020: add link of the uploaded video to DB
         except Exception as e:
             print(e)
 
@@ -177,6 +175,8 @@ def create_merge(cameras_file_name: str, screens_file_name: str,
                                file_id)
             except Exception as e:
                 print(e)
+
+        return file_url
 
 
 def equal(im1, im2):  # additional function for comparing images

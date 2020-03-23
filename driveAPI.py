@@ -62,7 +62,7 @@ def upload_video(filename: str, folder_id: str) -> str:
         }
         file = drive_service.files().create(
             body=file_data, media_body=media).execute()
-        return file.get('id')
+        return file.get('id'), file.get('webViewLink')
 
 
 def get_video_by_name(name: str) -> str:

@@ -9,33 +9,34 @@ engine = create_engine(os.environ.get('SQLALCHEMY_DATABASE_URI'))
 Session = sessionmaker(bind=engine)
 
 
+class UserRecords(Base):
+    __tablename__ = 'user_records'
+
+    id = Column(Integer, primary_key=True)
+    drive_file_url = Column(String(300), nullable=False)
+    user_email = Column(String(100), nullable=False)
+
+
 class Record(Base):
     __tablename__ = 'records'
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     event_name = Column(String(200))
     room_name = Column(String(200), nullable=False)
-    date = Column(String, nullable=False)
-    start_time = Column(String, nullable=False)
-    end_time = Column(String, nullable=False)
-
+    date = Column(String(100), nullable=False)
+    start_time = Column(String(100), nullable=False)
+    end_time = Column(String(100), nullable=False)
+    user_email = Column(String(100), nullable=False)
     event_id = Column(String(200))
 
-    def __init__(self, **kwargs):
-        self.event_name = kwargs.get('event_name')
-        self.room_name = kwargs.get('room_name')
-        self.date = kwargs.get('date')
-        self.start_time = kwargs.get('start_time')
-        self.end_time = kwargs.get('end_time')
-        self.event_id = kwargs.get('event_id')
-
-    def update(self, **kwargs):
+    def update_from_calendar(self, **kwargs):
         self.event_id = kwargs.get('id')
         self.event_name = kwargs.get('summary')
         self.date = kwargs['start']['dateTime'].split('T')[0]
         self.start_time = kwargs['start']['dateTime'].split('T')[1][:5]
         self.end_time = kwargs['end']['dateTime'].split('T')[1][:5]
         self.room_name = kwargs['room_name']
+        self.user_email = kwargs['creator']['email']
 
 
 class Room(Base):
