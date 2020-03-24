@@ -140,9 +140,9 @@ def create_merge(cameras_file_name: str, screens_file_name: str,
         os.remove(
             f'{HOME}/vids/screen_result_{round_start_time}_{round_end_time}.mp4')
         os.remove(
-            f'{HOME}/vids/vids_to_merge_cam_{round_start_time}_{round_end_time}.txt')
+            f'{HOME}/vids/{cameras_file_name}')
         os.remove(
-            f'{HOME}/vids/vids_to_merge_screen_{round_start_time}_{round_end_time}.txt')
+            f'{HOME}/vids/{screens_file_name}')
 
         # TODO 22.03.2020: remove origin 30m videos
         # for cam, screen in zip(cameras, screens):
