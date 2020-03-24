@@ -16,8 +16,8 @@ SCOPES = 'https://www.googleapis.com/auth/calendar'
 Setting up calendar
 """
 creds = None
-token_path = '.creds/tokenCalendar.pickle'
-creds_path = '.creds/credentials.json'
+token_path = '/merger/.creds/tokenCalendar.pickle'
+creds_path = '/merger/.creds/credentials.json'
 
 if os.path.exists(token_path):
     with open(token_path, 'rb') as token:
@@ -50,4 +50,3 @@ def add_attachment(calendar_id: str, event_id: str, file_id: str) -> None:
         calendar_service.events().patch(calendarId=calendar_id, eventId=event_id,
                                         body=changes,
                                         supportsAttachments=True).execute()
-

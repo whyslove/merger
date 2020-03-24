@@ -9,14 +9,6 @@ engine = create_engine(os.environ.get('SQLALCHEMY_DATABASE_URI'))
 Session = sessionmaker(bind=engine)
 
 
-class UserRecords(Base):
-    __tablename__ = 'user_records'
-
-    id = Column(Integer, primary_key=True)
-    drive_file_url = Column(String(300), nullable=False)
-    user_email = Column(String(100), nullable=False)
-
-
 class Record(Base):
     __tablename__ = 'records'
 
