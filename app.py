@@ -21,10 +21,9 @@ class DaemonApp:
 
         for record in self.records:
             date, end_time = record.date, record.end_time
-
             if datetime.now() <= datetime.strptime(f'{date} {end_time}', '%Y-%m-%d %H:%M'):
                 continue
-
+            print(f'start {record.event_name}')
             room = session.query(Room).filter(
                 Room.name == record.room_name).first()
 
@@ -46,6 +45,7 @@ class DaemonApp:
             session.add(user_record)
             session.delete(record)
 
+        session.commit()
         session.close()
 
     def get_folder_id(self, date: str, room: Room):
@@ -67,4 +67,6 @@ class DaemonApp:
 
 if __name__ == "__main__":
     daemon_app = DaemonApp()
-    daemon_app.run()
+    daemon_app.invoke_merge_events()
+    #daemon_app.run()
+

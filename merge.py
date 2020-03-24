@@ -32,8 +32,8 @@ def get_files(record: Record, room: Room) -> tuple:
     cameras_file_name = f"cam_vids_to_merge_{record.start_time}_{record.end_time}.txt"
     screens_file_name = f"screen_vids_to_merge_{record.start_time}_{record.end_time}.txt"
 
-    cams_file = open(cameras_file_name, "w")
-    screens_file = open(screens_file_name, "w")
+    cams_file = open(f'{HOME}/vids/{cameras_file_name}', "w")
+    screens_file = open(f'{HOME}/vids/{screens_file_name}', "w")
 
     date_time_start = datetime.strptime(
         f'{record.date} {record.start_time}', '%Y-%m-%d %H:%M')
@@ -48,7 +48,7 @@ def get_files(record: Record, room: Room) -> tuple:
     screen_source = room.screen_source.split('.')[-1].split('/')[0]
 
     reserve_cam = next(
-        source for source in room.sources if source.merge == "backup-right")
+        source for source in room.sources if source.merge.startswith('backup'))
     backup_source = reserve_cam.ip.split('.')[-1]
 
     cam_file_names = [date.strftime(
@@ -69,7 +69,7 @@ def get_files(record: Record, room: Room) -> tuple:
                                      f'{HOME}/vids/{screen_file_name}',
                                      '-frames:', '1', '-y', 'cutted_frame.png', ])
         cut_proc.wait()
-        im_example = Image.open(r"example.png")
+        im_example = Image.open(r"/merger/example.png")
         im_cutted = Image.open(r"cutted_frame.png")
         try:
             equal(im_example, im_cutted)
@@ -83,8 +83,8 @@ def get_files(record: Record, room: Room) -> tuple:
         im_example.close()
         im_cutted.close()
 
-        cams_file.write(f"file '{HOME}/vids/{cam_file_name}'")
-        screens_file.write(f"file '{HOME}/vids/{screen_file_name}'")
+        cams_file.write(f"file '{HOME}/vids/{cam_file_name}'\n")
+        screens_file.write(f"file '{HOME}/vids/{screen_file_name}'\n")
 
     cams_file.close()
     screens_file.close()
@@ -102,11 +102,11 @@ def create_merge(cameras_file_name: str, screens_file_name: str,
     with LOCK:
         cam_proc = subprocess.Popen(['ffmpeg', '-f', 'concat', '-safe', '0', '-i',
                                      f'{HOME}/vids/{cameras_file_name}',
-                                     '-c', 'copy', f'{HOME}/vids/cam_result_{start_time}_{end_time}.mp4'])
+                                     '-c', 'copy', f'{HOME}/vids/cam_result_{round_start_time}_{round_end_time}.mp4'])
         screen_proc = subprocess.Popen(['ffmpeg', '-f', 'concat', '-safe', '0', '-i',
                                         f'{HOME}/vids/{screens_file_name}',
                                         '-c', 'copy',
-                                        f'{HOME}/vids/screen_result_{start_time}_{end_time}.mp4'])
+                                        f'{HOME}/vids/screen_result_{round_start_time}_{round_end_time}.mp4'])
         cam_proc.wait()
         screen_proc.wait()
 
@@ -115,7 +115,7 @@ def create_merge(cameras_file_name: str, screens_file_name: str,
         time_to_cut_2 = int(round_end_time.split(
             ':')[1]) + 30 - int(end_time.split(':')[1])
 
-        duration = len(open(cameras_file_name).readlines()) * \
+        duration = len(open(f'{HOME}/vids/{cameras_file_name}').readlines()) * \
             30 - time_to_cut_1 - time_to_cut_2
 
         hours = f'{duration // 60}' if (duration //
@@ -136,14 +136,14 @@ def create_merge(cameras_file_name: str, screens_file_name: str,
         os.system("renice -n 20 %s" % (screen_cutting.pid,))
         screen_cutting.wait()
         cam_cutting.wait()
-        os.remove(
-            f'{HOME}/vids/cam_result_{round_start_time}_{round_end_time}.mp4')
-        os.remove(
-            f'{HOME}/vids/screen_result_{round_start_time}_{round_end_time}.mp4')
-        os.remove(
-            f'{HOME}/vids/vids_to_merge_cam_{round_start_time}_{round_end_time}.txt')
-        os.remove(
-            f'{HOME}/vids/vids_to_merge_screen_{round_start_time}_{round_end_time}.txt')
+        #os.remove(
+        #    f'{HOME}/vids/cam_result_{round_start_time}_{round_end_time}.mp4')
+        #os.remove(
+        #    f'{HOME}/vids/screen_result_{round_start_time}_{round_end_time}.mp4')
+        #os.remove(
+        #    f'{HOME}/vids/vids_to_merge_cam_{round_start_time}_{round_end_time}.txt')
+        #os.remove(
+        #    f'{HOME}/vids/vids_to_merge_screen_{round_start_time}_{round_end_time}.txt')
 
         # TODO 22.03.2020: remove origin 30m videos
         # for cam, screen in zip(cameras, screens):
@@ -156,15 +156,17 @@ def create_merge(cameras_file_name: str, screens_file_name: str,
                                   f'{HOME}/vids/{start_time}_{end_time}_final.mp4'], shell=False)
         os.system("renice -n 20 %s" % (first.pid,))
         first.wait()
-        os.remove(
-            f'{HOME}/vids/cam_clipped_{start_time}_{end_time}.mp4')
-        os.remove(
-            f'{HOME}/vids/screen_clipped_{start_time}_{end_time}.mp4')
+        #os.remove(
+        #    f'{HOME}/vids/cam_clipped_{start_time}_{end_time}.mp4')
+        #os.remove(
+        #    f'{HOME}/vids/screen_clipped_{start_time}_{end_time}.mp4')
+        file_url = ''
+        file_id = ''
         try:
             file_id, file_url = upload_video(
                 f'{HOME}/vids/{start_time}_{end_time}_final.mp4', folder_id)
-            os.remove(
-                f'{HOME}/vids/{start_time}_{end_time}_final.mp4')
+            #os.remove(
+            #    f'{HOME}/vids/{start_time}_{end_time}_final.mp4')
         except Exception as e:
             print(e)
 
