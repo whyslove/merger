@@ -101,11 +101,11 @@ def create_merge(cameras_file_name: str, screens_file_name: str,
     with LOCK:
         cam_proc = subprocess.Popen(['ffmpeg', '-f', 'concat', '-safe', '0', '-i',
                                      f'{HOME}/vids/{cameras_file_name}',
-                                     '-c', 'copy', f'{HOME}/vids/cam_result_{start_time}_{end_time}.mp4'])
+                                     '-c', 'copy', f'{HOME}/vids/cam_result_{round_start_time}_{round_end_time}.mp4'])
         screen_proc = subprocess.Popen(['ffmpeg', '-f', 'concat', '-safe', '0', '-i',
                                         f'{HOME}/vids/{screens_file_name}',
                                         '-c', 'copy',
-                                        f'{HOME}/vids/screen_result_{start_time}_{end_time}.mp4'])
+                                        f'{HOME}/vids/screen_result_{round_start_time}_{round_end_time}.mp4'])
         cam_proc.wait()
         screen_proc.wait()
 
