@@ -159,10 +159,9 @@ def create_merge(cameras_file_name: str, screens_file_name: str,
             f'{HOME}/vids/cam_clipped_{start_time}_{end_time}.mp4')
         os.remove(
             f'{HOME}/vids/screen_clipped_{start_time}_{end_time}.mp4')
-        file_url = ''
         file_id = ''
         try:
-            file_id, file_url = upload_video(
+            file_id = upload_video(
                 f'{HOME}/vids/{start_time}_{end_time}_final.mp4', folder_id)
             os.remove(
                 f'{HOME}/vids/{start_time}_{end_time}_final.mp4')
@@ -177,7 +176,7 @@ def create_merge(cameras_file_name: str, screens_file_name: str,
             except Exception as e:
                 print(e)
 
-        return file_url
+        return file_id
 
 
 def equal(im1, im2):  # additional function for comparing images

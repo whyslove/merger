@@ -62,7 +62,7 @@ def upload_video(filename: str, folder_id: str) -> tuple:
         }
         file = drive_service.files().create(
             body=file_data, media_body=media).execute()
-        return file.get('id'), file.get('webViewLink')
+        return file.get('id')
 
 
 def get_video_by_name(name: str) -> str:
@@ -99,3 +99,14 @@ def get_folders_by_name(name):
                 break
 
         return {folder['id']: folder.get('parents', [''])[0] for folder in response['files']}
+
+
+def share_file(file_id, user_email):
+    with lock:
+        user_permission = {
+            'type': 'user',
+            'role': 'reader',
+            'emailAddress': user_email}
+
+        drive_service.permissions().create(
+            fileId=file_id, body=user_permission).execute()

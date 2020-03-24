@@ -1,9 +1,9 @@
 import time
 from datetime import datetime
-
+import pytz
 import schedule
 
-from driveAPI import get_folders_by_name
+from driveAPI import get_folders_by_name, share_file
 from merge import get_files, create_merge
 from models import Session, Record, Room
 
@@ -21,7 +21,7 @@ class DaemonApp:
 
         for record in self.records:
             date, end_time = record.date, record.end_time
-            if datetime.now() <= datetime.strptime(f'{date} {end_time}', '%Y-%m-%d %H:%M'):
+            if datetime.now(tz=pytz.timezone('Europe/Moscow')) <= datetime.strptime(f'{date} {end_time}', '%Y-%m-%d %H:%M'):
                 continue
             print(f'start {record.event_name}')
             room = session.query(Room).filter(
@@ -32,13 +32,12 @@ class DaemonApp:
             cameras_file_name, screens_file_name, rounded_start_time, rounded_end_time = get_files(
                 record, room)
 
-            file_url = create_merge(cameras_file_name, screens_file_name,
-                                    rounded_start_time, rounded_end_time,
-                                    record.start_time, record.end_time, folder_id,
-                                    calendar_id, record.event_id)
+            file_id = create_merge(cameras_file_name, screens_file_name,
+                                   rounded_start_time, rounded_end_time,
+                                   record.start_time, record.end_time, folder_id,
+                                   calendar_id, record.event_id)
 
-            # TODO
-            # send_email(record.user_email, file_url)
+            share_file(file_id, record.user_email)
 
             session.delete(record)
 
