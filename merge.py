@@ -62,6 +62,8 @@ def get_files(record: Record, room: Room) -> tuple:
         cam_file_id = get_video_by_name(cam_file_name)
         download_video(cam_file_id, cam_file_name)
 
+        cams_file.write(f"file '{HOME}/vids/{cam_file_name}'\n")
+
         screen_file_id = get_video_by_name(screen_file_name)
         download_video(screen_file_id, screen_file_name)
         # Проверка на полотна
@@ -83,9 +85,6 @@ def get_files(record: Record, room: Room) -> tuple:
         im_example.close()
         im_cutted.close()
 
-        cams_file.write(f"file '{HOME}/vids/{cam_file_name}'")
-        screens_file.write(f"file '{HOME}/vids/{screen_file_name}'")
-
     cams_file.close()
     screens_file.close()
 
@@ -98,7 +97,7 @@ def get_files(record: Record, room: Room) -> tuple:
 def create_merge(cameras_file_name: str, screens_file_name: str,
                  round_start_time: str, round_end_time: str,
                  start_time: str, end_time: str, folder_id: str,
-                 calendar_id: str = None, event_id: str = None) -> None:
+                 calendar_id: str = None, event_id: str = None) -> str:
     with LOCK:
         cam_proc = subprocess.Popen(['ffmpeg', '-f', 'concat', '-safe', '0', '-i',
                                      f'{HOME}/vids/{cameras_file_name}',
@@ -115,7 +114,7 @@ def create_merge(cameras_file_name: str, screens_file_name: str,
         time_to_cut_2 = int(round_end_time.split(
             ':')[1]) + 30 - int(end_time.split(':')[1])
 
-        duration = len(open(cameras_file_name).readlines()) * \
+        duration = len(open(cameras_file_name, "r").readlines()) * \
             30 - time_to_cut_1 - time_to_cut_2
 
         hours = f'{duration // 60}' if (duration //
