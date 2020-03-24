@@ -1,6 +1,5 @@
 import time
-from datetime import datetime
-import pytz
+from datetime import datetime, timedelta
 import schedule
 
 from driveAPI import get_folders_by_name, share_file
@@ -21,7 +20,7 @@ class DaemonApp:
 
         for record in self.records:
             date, end_time = record.date, record.end_time
-            if datetime.now(tz=pytz.timezone('Europe/Moscow')) <= datetime.strptime(f'{date} {end_time}', '%Y-%m-%d %H:%M'):
+            if datetime.now() + timedelta(hours=3) <= datetime.strptime(f'{date} {end_time}', '%Y-%m-%d %H:%M'):
                 continue
             print(f'start {record.event_name}')
             room = session.query(Room).filter(
