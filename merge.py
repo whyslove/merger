@@ -117,8 +117,12 @@ def create_merge(cameras_file_name: str, screens_file_name: str,
         time_to_cut_2 = int(round_end_time.split(
             ':')[1]) + 30 - int(end_time.split(':')[1])
 
-        duration = len(open(cameras_file_name, "r").readlines()) * \
+        cams_file = open(cameras_file_name, "r")
+
+        duration = len(cams_file.readlines()) * \
             30 - time_to_cut_1 - time_to_cut_2
+
+        cams_file.close()
 
         hours = f'{duration // 60}' if (duration //
                                         60) > 9 else f'0{duration // 60}'
