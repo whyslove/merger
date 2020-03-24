@@ -1,10 +1,10 @@
-import math
-from PIL import Image, ImageChops
 import os
 import subprocess
 from datetime import datetime
 from pathlib import Path
 from threading import RLock
+
+from PIL import Image, ImageChops
 
 from calendarAPI import add_attachment
 from driveAPI import upload_video, download_video, get_video_by_name
@@ -24,6 +24,7 @@ def get_dates_between_timestamps(start_timestamp: int, stop_timestamp: int) -> l
         dates.append(datetime.fromtimestamp(timestamp))
 
     return dates
+
 
 # add smart merge
 
@@ -58,7 +59,8 @@ def get_files(record: Record, room: Room) -> tuple:
     reserve_cam_file_names = [date.strftime(
         f"%Y-%m-%d_%H:%M_{room.name}_{backup_source}.mp4") for date in dates]
 
-    for cam_file_name, screen_file_name, reserve_cam_file_name in zip(cam_file_names, screen_file_names, reserve_cam_file_names):
+    for cam_file_name, screen_file_name, reserve_cam_file_name in zip(cam_file_names, screen_file_names,
+                                                                      reserve_cam_file_names):
         cam_file_id = get_video_by_name(cam_file_name)
         download_video(cam_file_id, cam_file_name)
         cams_file.write(f"file '{HOME}/vids/{cam_file_name}'\n")
@@ -117,17 +119,14 @@ def create_merge(cameras_file_name: str, screens_file_name: str,
         time_to_cut_2 = int(round_end_time.split(
             ':')[1]) + 30 - int(end_time.split(':')[1])
 
-        cams_file = open(cameras_file_name, "r")
-
-        duration = len(cams_file.readlines()) * \
-            30 - time_to_cut_1 - time_to_cut_2
-
-        cams_file.close()
+        with open(cameras_file_name, "r") as cams_file:
+            duration = len(cams_file.readlines()) * \
+                       30 - time_to_cut_1 - time_to_cut_2
 
         hours = f'{duration // 60}' if (duration //
                                         60) > 9 else f'0{duration // 60}'
         minutes = f'{duration % 60}' if (
-            duration % 60) > 9 else f'0{duration % 60}'
+                                                duration % 60) > 9 else f'0{duration % 60}'
         vid_dur = f'{hours}:{minutes}:00'
         vid_start = f'00:{time_to_cut_1}:00' if time_to_cut_1 > 9 else f'00:0{time_to_cut_1}:00'
         cam_cutting = subprocess.Popen(['ffmpeg', '-ss', vid_start, '-t', vid_dur, '-i',
