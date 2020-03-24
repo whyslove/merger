@@ -50,7 +50,7 @@ def download_video(video_id: str, video_name: str) -> None:
             status, done = downloader.next_chunk()
 
 
-def upload_video(filename: str, folder_id: str) -> str:
+def upload_video(filename: str, folder_id: str) -> tuple:
     """
     Upload file "filename" on drive folder 'folder_id'
     """
