@@ -117,10 +117,12 @@ def create_merge(cameras_file_name: str, screens_file_name: str,
 
         with open(f'{HOME}/vids/{cameras_file_name}') as cams_file:
             duration = len(cams_file.readlines()) * \
-                       30 - time_to_cut_1 - time_to_cut_2
+                30 - time_to_cut_1 - time_to_cut_2
 
-        hours = f'{duration // 60}' if (duration // 60) > 9 else f'0{duration // 60}'
-        minutes = f'{duration % 60}' if (duration % 60) > 9 else f'0{duration % 60}'
+        hours = f'{duration // 60}' if (duration //
+                                        60) > 9 else f'0{duration // 60}'
+        minutes = f'{duration % 60}' if (
+            duration % 60) > 9 else f'0{duration % 60}'
         vid_dur = f'{hours}:{minutes}:00'
         vid_start = f'00:{time_to_cut_1}:00' if time_to_cut_1 > 9 else f'00:0{time_to_cut_1}:00'
         cam_cutting = subprocess.Popen(['ffmpeg', '-ss', vid_start, '-t', vid_dur, '-i',

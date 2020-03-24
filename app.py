@@ -17,7 +17,7 @@ class DaemonApp:
 
     def invoke_merge_events(self):
         session = Session()
-        self.records = session.query(Record).all()
+        self.records = session.query(Record).filter(Record.done != True).all()
 
         for record in self.records:
             date, end_time = record.date, record.end_time
@@ -39,7 +39,7 @@ class DaemonApp:
 
             share_file(file_id, record.user_email)
 
-            session.delete(record)
+            record.done = True
 
         session.commit()
         session.close()

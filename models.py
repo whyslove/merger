@@ -21,6 +21,8 @@ class Record(Base):
     user_email = Column(String(100), nullable=False)
     event_id = Column(String(200))
 
+    done = Column(Boolean, nullable=False, default=False)
+
     def update_from_calendar(self, **kwargs):
         self.event_id = kwargs.get('id')
         self.event_name = kwargs.get('summary')
