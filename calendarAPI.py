@@ -51,18 +51,3 @@ def add_attachment(calendar_id: str, event_id: str, file_id: str) -> None:
                                         body=changes,
                                         supportsAttachments=True).execute()
 
-
-def get_events(calendar_id: str) -> dict:
-    with lock:
-        now = datetime.utcnow()
-        time_min = now - timedelta(days=30)
-        time_max = now + timedelta(days=30)
-        events_result = calendar_service.events().list(calendarId=calendar_id,
-                                                       timeMin=time_min.isoformat() + 'Z',
-                                                       timeMax=time_max.isoformat() + 'Z',
-                                                       singleEvents=True,
-                                                       orderBy='startTime').execute()
-        events = events_result['items']
-        events = {event['id']: event for event in events}
-
-        return events
