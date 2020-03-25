@@ -77,12 +77,14 @@ def get_files(record: Record, room: Room) -> tuple:
         try:
             equal(im_example, im_cutted)
         except:
+            print("Merging with presentation")
             screens_file.write(f"file '{HOME}/vids/{screen_file_name}'\n")
         else:
-            # r_cam это список резервных камер
+            print("No presentation provided")
             reserve_cam_file_id = get_video_by_name(reserve_cam_file_name)
             download_video(reserve_cam_file_id, reserve_cam_file_name)
             screens_file.write(f"file '{HOME}/vids/{reserve_cam_file_name}'\n")
+
         im_example.close()
         im_cutted.close()
 
