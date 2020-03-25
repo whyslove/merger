@@ -49,7 +49,7 @@ def get_files(record: Record, room: Room) -> tuple:
     screen_source = room.screen_source.split('.')[-1].split('/')[0]
 
     reserve_cam = next(
-        source for source in room.sources if source.merge.startswith('backup'))
+        source for source in room.sources if source.merge.endswith('right'))
     backup_source = reserve_cam.ip.split('.')[-1]
 
     cam_file_names = [date.strftime(
