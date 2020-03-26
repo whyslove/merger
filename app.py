@@ -1,5 +1,6 @@
 import time
 from datetime import datetime, timedelta
+
 import schedule
 
 from driveAPI import get_folders_by_name, share_file
@@ -31,12 +32,13 @@ class DaemonApp:
             cameras_file_name, screens_file_name, rounded_start_time, rounded_end_time = get_files(
                 record, room)
 
-            file_id = create_merge(cameras_file_name, screens_file_name,
-                                   rounded_start_time, rounded_end_time,
-                                   record.start_time, record.end_time, folder_id,
-                                   calendar_id, record.event_id)
+            file_id, backup_file_id = create_merge(cameras_file_name, screens_file_name,
+                                                   rounded_start_time, rounded_end_time,
+                                                   record.start_time, record.end_time, folder_id,
+                                                   calendar_id, record.event_id, record.event_name)
 
             share_file(file_id, record.user_email)
+            share_file(backup_file_id, record.user_email)
 
             record.done = True
 
