@@ -16,7 +16,7 @@ class DaemonApp:
 
     def invoke_merge_events(self):
         session = Session()
-        self.records = session.query(Record).filter(Record.done != True).all()
+        self.records = session.query(Record).filter(Record.done == False).all()
 
         for record in self.records:
             date, end_time = record.date, record.end_time
