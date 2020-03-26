@@ -168,8 +168,8 @@ def create_merge(cameras_file_name: str, screens_file_name: str,
         backup_file_name = f'{start_time}_{end_time}_backup.mp4'
 
         if event_name is not None:
-            file_name = f'{event_name}_' + file_name
-            backup_file_name = f'{event_name}_' + backup_file_name
+            file_name = f'{event_name.encode("utf-8")}_' + file_name
+            backup_file_name = f'{event_name.encode("utf-8")}_' + backup_file_name
 
         try:
             os.rename(f'{HOME}/vids/{start_time}_{end_time}_final.mp4',

@@ -23,7 +23,7 @@ class DaemonApp:
             date, end_time = record.date, record.end_time
             if datetime.now() + timedelta(hours=3) <= datetime.strptime(f'{date} {end_time}', '%Y-%m-%d %H:%M'):
                 continue
-            print(f'start {record.event_name}')
+            print(f'start {record.event_name.encode("utf-8")}')
             room = session.query(Room).filter(
                 Room.name == record.room_name).first()
 
