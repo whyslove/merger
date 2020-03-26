@@ -100,7 +100,8 @@ def get_files(record: Record, room: Room) -> tuple:
 def create_merge(cameras_file_name: str, screens_file_name: str,
                  round_start_time: str, round_end_time: str,
                  start_time: str, end_time: str, folder_id: str,
-                 calendar_id: str = None, event_id: str = None) -> str:
+                 calendar_id: str = None, event_id: str = None,
+                 event_name: str = None) -> tuple:
     with LOCK:
         cam_proc = subprocess.Popen(['ffmpeg', '-f', 'concat', '-safe', '0', '-i',
                                      f'{HOME}/vids/{cameras_file_name}',
@@ -118,13 +119,10 @@ def create_merge(cameras_file_name: str, screens_file_name: str,
             ':')[1]) + 30 - int(end_time.split(':')[1])
 
         with open(f'{HOME}/vids/{cameras_file_name}') as cams_file:
-            duration = len(cams_file.readlines()) * \
-                30 - time_to_cut_1 - time_to_cut_2
+            duration = len(cams_file.readlines()) * 30 - time_to_cut_1 - time_to_cut_2
 
-        hours = f'{duration // 60}' if (duration //
-                                        60) > 9 else f'0{duration // 60}'
-        minutes = f'{duration % 60}' if (
-            duration % 60) > 9 else f'0{duration % 60}'
+        hours = f'{duration // 60}' if (duration // 60) > 9 else f'0{duration // 60}'
+        minutes = f'{duration % 60}' if (duration % 60) > 9 else f'0{duration % 60}'
         vid_dur = f'{hours}:{minutes}:00'
         vid_start = f'00:{time_to_cut_1}:00' if time_to_cut_1 > 9 else f'00:0{time_to_cut_1}:00'
         cam_cutting = subprocess.Popen(['ffmpeg', '-ss', vid_start, '-t', vid_dur, '-i',
@@ -164,11 +162,26 @@ def create_merge(cameras_file_name: str, screens_file_name: str,
         os.remove(
             f'{HOME}/vids/screen_clipped_{start_time}_{end_time}.mp4')
         file_id = ''
+        backup_file_id = ''
+
+        file_name = f'{start_time}_{end_time}.mp4'
+        backup_file_name = f'{start_time}_{end_time}_backup.mp4'
+
+        if event_name is not None:
+            file_name = f'{event_name}_' + file_name
+            backup_file_name = f'{event_name}_' + backup_file_name
+
         try:
-            file_id = upload_video(
-                f'{HOME}/vids/{start_time}_{end_time}_final.mp4', folder_id)
-            os.remove(
-                f'{HOME}/vids/{start_time}_{end_time}_final.mp4')
+            os.rename(f'{HOME}/vids/{start_time}_{end_time}_final.mp4',
+                      f'{HOME}/vids/{file_name}')
+            os.rename(f'{HOME}/vids/screen_clipped_{start_time}_{end_time}.mp4',
+                      f'{HOME}/vids/{backup_file_name}')
+
+            file_id = upload_video(f'{HOME}/vids/{file_name}', folder_id)
+            backup_file_id = upload_video(f'{HOME}/vids/{backup_file_name}', folder_id)
+
+            os.remove(f'{HOME}/vids/{file_name}')
+            os.remove(f'{HOME}/vids/{backup_file_name}')
         except Exception as e:
             print(e)
 
@@ -177,10 +190,13 @@ def create_merge(cameras_file_name: str, screens_file_name: str,
                 add_attachment(calendar_id,
                                event_id,
                                file_id)
+                add_attachment(calendar_id,
+                               event_id,
+                               backup_file_id)
             except Exception as e:
                 print(e)
 
-        return file_id
+        return file_id, backup_file_id
 
 
 def equal(im1, im2):  # additional function for comparing images
