@@ -41,8 +41,8 @@ class DaemonApp:
             share_file(backup_file_id, record.user_email)
 
             record.done = True
+            session.commit()
 
-        session.commit()
         session.close()
 
     def get_folder_id(self, date: str, room: Room):
