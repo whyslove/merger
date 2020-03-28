@@ -1,5 +1,6 @@
 import time
 from datetime import datetime, timedelta
+import traceback
 
 import schedule
 
@@ -9,7 +10,6 @@ from models import Session, Record, Room
 
 
 class DaemonApp:
-    records = None
 
     def __init__(self):
         schedule.every().hour.at(":00").do(self.invoke_merge_events)
@@ -17,12 +17,20 @@ class DaemonApp:
 
     def invoke_merge_events(self):
         session = Session()
-        self.records = session.query(Record).filter(Record.done == False).all()
+        records = session.query(Record).filter(Record.done == False,
+                                               Record.processing == False).all()
 
-        for record in self.records:
-            date, end_time = record.date, record.end_time
-            if datetime.now() + timedelta(hours=3) <= datetime.strptime(f'{date} {end_time}', '%Y-%m-%d %H:%M'):
-                continue
+        try:
+            # Moscow time +1 hour to let videos upload to drive
+            now_moscow = datetime.now() + timedelta(hours=4)
+            record = next(record for record in records
+                          if now_moscow > datetime.strptime(f'{record.date} {record.end_time}', '%Y-%m-%d %H:%M'))
+        except StopIteration:
+            print(f'Records not found at {now_moscow}')
+            session.close()
+            return
+
+        try:
             print(f'start {record.event_name}')
             room = session.query(Room).filter(
                 Room.name == record.room_name).first()
@@ -46,8 +54,10 @@ class DaemonApp:
             record.processing = False
             record.done = True
             session.commit()
-
-        session.close()
+        except Exception:
+            traceback.print_exc()
+        finally:
+            session.close()
 
     def get_folder_id(self, date: str, room: Room):
         folders = get_folders_by_name(date)
