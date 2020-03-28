@@ -21,10 +21,9 @@ class DaemonApp:
                                                Record.processing == False).all()
 
         try:
-            # Moscow time +1 hour to let videos upload to drive
-            now_moscow = datetime.now() + timedelta(hours=4)
+            now_moscow = datetime.now() + timedelta(hours=3)
             record = next(record for record in records
-                          if now_moscow > datetime.strptime(f'{record.date} {record.end_time}', '%Y-%m-%d %H:%M'))
+                          if now_moscow >= datetime.strptime(f'{record.date} {record.end_time}', '%Y-%m-%d %H:%M'))
         except StopIteration:
             print(f'Records not found at {now_moscow}')
             session.close()
