@@ -27,6 +27,9 @@ class DaemonApp:
             room = session.query(Room).filter(
                 Room.name == record.room_name).first()
 
+            record.processing = True
+            session.commit()
+
             calendar_id = room.calendar if record.event_id else None
             folder_id = self.get_folder_id(record.date, room)
             cameras_file_name, screens_file_name, rounded_start_time, rounded_end_time = get_files(
@@ -40,6 +43,7 @@ class DaemonApp:
             share_file(file_id, record.user_email)
             share_file(backup_file_id, record.user_email)
 
+            record.processing = False
             record.done = True
             session.commit()
 
