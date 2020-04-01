@@ -42,11 +42,12 @@ def add_attachment(calendar_id: str, event_id: str, file_id: str) -> None:
     with lock:
         event = calendar_service.events().get(
             calendarId=calendar_id, eventId=event_id).execute()
-        description = event.get('description', '') + \
-            f"\nhttps://drive.google.com/a/auditory.ru/file/d/{file_id}/view?usp=drive_web"
-        changes = {
-            'description': description
-        }
-        calendar_service.events().patch(calendarId=calendar_id, eventId=event_id,
-                                        body=changes,
-                                        supportsAttachments=True).execute()
+        description = event.get('description', '')
+        # description = event.get('description', '') + \
+        #     f"\nhttps://drive.google.com/a/auditory.ru/file/d/{file_id}/view?usp=drive_web"
+        # changes = {
+        #     'description': description
+        # }
+        # calendar_service.events().patch(calendarId=calendar_id, eventId=event_id,
+        #                                 body=changes,
+        #                                 supportsAttachments=True).execute()
