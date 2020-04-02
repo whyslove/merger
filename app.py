@@ -59,7 +59,7 @@ class DaemonApp:
                                                   record.event_id,
                                                   files)
 
-                    course_code = description.split('<br>')[0]
+                    course_code = description.split('\n')[0]
                     course = get_course_by_code(course_code)
                     if course:
                         create_assignment(course.get('id', ''),
