@@ -5,6 +5,8 @@ import traceback
 import schedule
 
 from driveAPI import get_folders_by_name, share_file
+from calendarAPI import add_attachments
+from classroom_api import create_assignment, get_course_by_code
 from merge import get_files, create_merge
 from models import Session, Record, Room
 
@@ -45,15 +47,30 @@ class DaemonApp:
             file_id, backup_file_id = create_merge(cameras_file_name, screens_file_name,
                                                    rounded_start_time, rounded_end_time,
                                                    record.start_time, record.end_time, folder_id,
-                                                   calendar_id, record.event_id, record.event_name)
+                                                   record.event_name)
 
             share_file(file_id, record.user_email)
             share_file(backup_file_id, record.user_email)
 
+            if calendar_id:
+                try:
+                    files = [file_id, backup_file_id]
+                    description = add_attachments(calendar_id,
+                                                  record.event_id,
+                                                  files)
+
+                    course_code = description.split('<br>')[0]
+                    course = get_course_by_code(course_code)
+                    if course:
+                        create_assignment(course.get('id', ''),
+                                          record.event_name, files)
+                except:
+                    traceback.print_exc()
+
             record.processing = False
             record.done = True
             session.commit()
-        except Exception:
+        except:
             traceback.print_exc()
         finally:
             session.close()
