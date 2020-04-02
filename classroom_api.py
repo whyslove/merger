@@ -35,10 +35,14 @@ def get_all_courses():
     return courses
 
 
-def create_assignment(course_id, title, url):
+def create_assignment(course_id, title, file_url, backup_file_url):
     body = {
         'title': title,
-        'description': url,
+        'description': '',
+        'materials': [
+            {'link': {'url': file_url}},
+            {'link': {'url': backup_file_url}}
+        ],
         'workType': 'ASSIGNMENT',
         'state': 'PUBLISHED',
     }
@@ -53,5 +57,9 @@ if __name__ == "__main__":
     COURSE_ID = '62566470367'  # test_graders
     URL = 'https://drive.google.com/a/auditory.ru/file/d/1u6d23Y9-tOsL-YF3JQGNmXmJ3w5gYKNN/view?usp=drive_web'
 
-    from pprint import pprint
-    pprint(create_assignment(COURSE_ID, URL))
+    #courses = get_all_courses()
+    # for course in courses:
+    #    print(course.get('description', ''))
+    # from pprint import pprint
+    # pprint(create_assignment(COURSE_ID, URL,
+    #                         'vk.com/stlesnik', 'instagram.com/stlesnik'))
