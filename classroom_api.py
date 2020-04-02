@@ -6,10 +6,9 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 
 SCOPES = ['https://www.googleapis.com/auth/classroom.courses.readonly',
-          'https://www.googleapis.com/auth/classroom.coursework.students',
-          ]
-TOKEN_PATH = '.creds/tokenClassroom.pickle'
-CREDS_PATH = '.creds/classroom_creds.json'
+          'https://www.googleapis.com/auth/classroom.coursework.students']
+TOKEN_PATH = '/merger/.creds/tokenClassroom.pickle'
+CREDS_PATH = '/merger/.creds/classroom_creds.json'
 
 creds = None
 
@@ -35,14 +34,10 @@ def get_all_courses():
     return courses
 
 
-def create_assignment(course_id, title, file_url, backup_file_url):
+def create_assignment(course_id, title, files):
     body = {
         'title': title,
-        'description': '',
-        'materials': [
-            {'link': {'url': file_url}},
-            {'link': {'url': backup_file_url}}
-        ],
+        'description': '\n'.join(files),
         'workType': 'ASSIGNMENT',
         'state': 'PUBLISHED',
     }
@@ -53,13 +48,10 @@ def create_assignment(course_id, title, file_url, backup_file_url):
     return work
 
 
-if __name__ == "__main__":
-    COURSE_ID = '62566470367'  # test_graders
-    URL = 'https://drive.google.com/a/auditory.ru/file/d/1u6d23Y9-tOsL-YF3JQGNmXmJ3w5gYKNN/view?usp=drive_web'
+def get_course_by_code(course_code):
+    courses = get_all_courses()
+    for course in courses:
+        if course_code == course.get('description', ''):
+            return course
 
-    #courses = get_all_courses()
-    # for course in courses:
-    #    print(course.get('description', ''))
-    # from pprint import pprint
-    # pprint(create_assignment(COURSE_ID, URL,
-    #                         'vk.com/stlesnik', 'instagram.com/stlesnik'))
+    return None

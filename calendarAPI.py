@@ -16,8 +16,8 @@ SCOPES = 'https://www.googleapis.com/auth/calendar'
 Setting up calendar
 """
 creds = None
-token_path = '.creds/tokenCalendar.pickle'
-creds_path = '.creds/credentials.json'
+token_path = '/merger/.creds/tokenCalendar.pickle'
+creds_path = '/merger/.creds/credentials.json'
 
 if os.path.exists(token_path):
     with open(token_path, 'rb') as token:
@@ -35,21 +35,24 @@ if not creds or not creds.valid:
 calendar_service = build('calendar', 'v3', credentials=creds)
 
 
-def add_attachment(calendar_id: str, event_id: str, file_id: str) -> None:
+def add_attachments(calendar_id: str, event_id: str, file_ids: list) -> None:
     """
     Adds url of drive file 'file_id' to calendar event 'event_id'
     """
     with lock:
         event = calendar_service.events().get(
             calendarId=calendar_id, eventId=event_id).execute()
-        description = event.get('description', '')
-        # description = event.get('description', '') + \
-        #     f"\nhttps://drive.google.com/a/auditory.ru/file/d/{file_id}/view?usp=drive_web"
-        # changes = {
-        #     'description': description
-        # }
-        # calendar_service.events().patch(calendarId=calendar_id, eventId=event_id,
-        #                                 body=changes,
-        #                                 supportsAttachments=True).execute()
-    return event.get('description', '').split('\n')[2], event.get('description', '').split(
-        '\n')[0] + '  -  ' + event.get('start').get('dateTime', '').split('T')[0]+'; ' + event.get('start').get('dateTime', '').split('T')[1]+'-'+event.get('end').get('dateTime', '').split('T')[1]
+
+        files_urls = [
+            f"\nhttps://drive.google.com/a/auditory.ru/file/d/{file_id}/view?usp=drive_web" for file_id in file_ids]
+        description = event.get('description', '') + ''.join(files_urls)
+
+        changes = {
+            'description': description
+        }
+
+        calendar_service.events().patch(calendarId=calendar_id, eventId=event_id,
+                                        body=changes,
+                                        supportsAttachments=True).execute()
+
+        return description

@@ -8,7 +8,6 @@ from classroom_api import get_all_courses, create_assignment
 
 from PIL import Image, ImageChops
 
-from calendarAPI import add_attachment
 from driveAPI import upload_video, download_video, get_video_by_name
 from models import Record, Room
 
@@ -99,7 +98,6 @@ def get_files(record: Record, room: Room) -> tuple:
 def create_merge(cameras_file_name: str, screens_file_name: str,
                  round_start_time: str, round_end_time: str,
                  start_time: str, end_time: str, folder_id: str,
-                 calendar_id: str = None, event_id: str = None,
                  event_name: str = None) -> tuple:
     with LOCK:
         cam_proc = subprocess.Popen(['ffmpeg', '-f', 'concat', '-safe', '0', '-i',
@@ -188,34 +186,9 @@ def create_merge(cameras_file_name: str, screens_file_name: str,
         except Exception as e:
             print(e)
 
-        if calendar_id:
-            try:
-                course_code, course_description = add_attachment(calendar_id,
-                                                                 event_id,
-                                                                 file_id)
-                course_code, course_description = add_attachment(calendar_id,
-                                                                 event_id,
-                                                                 backup_file_id)
-                add_to_classroom(course_code, course_description,
-                                 file_id, backup_file_id)
-            except Exception as e:
-                print(e)
-
         return file_id, backup_file_id
 
 
 # additional function for comparing images
 def equal(im1, im2):
     return ImageChops.difference(im1, im2).getbbox() is None
-
-
-# adds links to classroom course
-def add_to_classroom(course_code, course_description, file_id, backup_file_id):
-    courses = get_all_courses()
-    for course in courses:
-        if course_code == course.get('description', ''):
-            create_assignment(course.get('id', ''),
-                              course_description, file_id, backup_file_id)
-            break
-    else:
-        print('Курс отсутствует')
