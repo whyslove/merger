@@ -35,7 +35,7 @@ if not creds or not creds.valid:
 calendar_service = build('calendar', 'v3', credentials=creds)
 
 
-def add_attachments(calendar_id: str, event_id: str, file_ids: list) -> None:
+def add_attachments(calendar_id: str, event_id: str, files_urls: list) -> None:
     """
     Adds url of drive file 'file_id' to calendar event 'event_id'
     """
@@ -43,8 +43,6 @@ def add_attachments(calendar_id: str, event_id: str, file_ids: list) -> None:
         event = calendar_service.events().get(
             calendarId=calendar_id, eventId=event_id).execute()
 
-        files_urls = [
-            f"\nhttps://drive.google.com/a/auditory.ru/file/d/{file_id}/view?usp=drive_web" for file_id in file_ids]
         description = event.get('description', '') + ''.join(files_urls)
 
         changes = {
