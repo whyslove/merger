@@ -54,19 +54,19 @@ class DaemonApp:
 
             if calendar_id:
                 try:
-                    files = [file_id, backup_file_id]
-                    files_urls = [
+                    file_ids = [file_id, backup_file_id]
+                    file_urls = [
                         f"\nhttps://drive.google.com/a/auditory.ru/file/d/{file_id}/view?usp=drive_web" for file_id in file_ids]
 
                     description = add_attachments(calendar_id,
                                                   record.event_id,
-                                                  files_urls)
+                                                  file_urls)
 
                     course_code = description.split('\n')[0]
                     course = get_course_by_code(course_code)
                     if course:
                         create_assignment(course.get('id', ''),
-                                          record.event_name, files_urls)
+                                          record.event_name, file_urls)
                 except:
                     traceback.print_exc()
 
