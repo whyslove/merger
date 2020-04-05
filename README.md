@@ -74,10 +74,10 @@ ORM-библиотеки SQLAlchemy.
 git clone https://git.miem.hse.ru/nvr/merger.git
 cp .env merger/.env
 cd merger
-./run_docker.sh
+sudo ./run_docker.sh
 ```
 
 ## Авторы
 
 [Дмитрий Кудрявцев](https://github.com/kuderr),
-[Денис Приходько](https://github.com/Burnouttt), 
+[Денис Приходько](https://github.com/Burnouttt) 
