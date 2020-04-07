@@ -80,4 +80,6 @@ sudo ./run_docker.sh
 ## Авторы
 
 [Дмитрий Кудрявцев](https://github.com/kuderr),
-[Денис Приходько](https://github.com/Burnouttt) 
+[Денис Приходько](https://github.com/Burnouttt),
+[Александр Щупак](https://git.miem.hse.ru/aaschupak)
+
