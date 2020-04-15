@@ -1,7 +1,7 @@
 import time
 from datetime import datetime, timedelta
 import traceback
-
+import requests
 import schedule
 
 from driveAPI import get_folders_by_name, share_file
@@ -51,6 +51,8 @@ class DaemonApp:
 
             share_file(file_id, record.user_email)
             share_file(backup_file_id, record.user_email)
+            self.send_zulip_msg(
+                record.user_email, f'https://drive.google.com/a/auditory.ru/file/d/{file_id}/view?usp=drive_web')
 
             if calendar_id:
                 try:
@@ -85,6 +87,13 @@ class DaemonApp:
             folder_id = room.drive.split('/')[-1]
 
         return folder_id
+
+    def send_zulip_msg(self, email, msg):
+        res = requests.post('http://172.18.130.41:8080/record', json={
+            "email": email,
+            "link": msg
+        })
+        print(res)
 
     def run(self):
         while True:
