@@ -52,7 +52,7 @@ class DaemonApp:
             share_file(file_id, record.user_email)
             share_file(backup_file_id, record.user_email)
             self.send_zulip_msg(
-                record.user_email, f'https://drive.google.com/a/auditory.ru/file/d/{file_id}/view?usp=drive_web')
+                record.user_email, f'Ваша склейка в NVR готова: https://drive.google.com/a/auditory.ru/file/d/{file_id}/view?usp=drive_web')
 
             if calendar_id:
                 try:
@@ -92,9 +92,9 @@ class DaemonApp:
         return folder_id
 
     def send_zulip_msg(self, email, msg):
-        res = requests.post('http://172.18.130.41:8080/record', json={
+        res = requests.post('http://172.18.130.41:8080/api/send-msg', json={
             "email": email,
-            "link": msg
+            "msg": msg
         })
         print(res)
 
