@@ -19,12 +19,19 @@ class DaemonApp:
 
     def invoke_merge_events(self):
         session = Session()
-        records = session.query(Record).filter(Record.done == False,
-                                               Record.processing == False).all()
+        process_record = session.query(Record).filter(
+            Record.processing == True).first()
+
+        if process_record:
+            session.close()
+            return
+
+        records_to_create = session.query(Record).filter(Record.done == False,
+                                                         Record.processing == False).all()
 
         try:
             now_moscow = datetime.now() + timedelta(hours=3)
-            record = next(record for record in records
+            record = next(record for record in records_to_create
                           if now_moscow >= datetime.strptime(f'{record.date} {record.end_time}', '%Y-%m-%d %H:%M'))
         except StopIteration:
             print(f'Records not found at {now_moscow}')
