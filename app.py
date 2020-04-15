@@ -79,12 +79,12 @@ class DaemonApp:
                 except:
                     traceback.print_exc()
 
-            record.processing = False
-            record.done = True
-            session.commit()
         except:
             traceback.print_exc()
         finally:
+            record.processing = False
+            record.done = True
+            session.commit()
             session.close()
 
     def get_folder_id(self, date: str, room: Room):
