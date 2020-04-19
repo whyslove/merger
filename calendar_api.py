@@ -7,7 +7,6 @@ from threading import RLock
 from google.auth.transport.requests import Request
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
-from datetime import datetime, timedelta
 
 lock = RLock()
 
@@ -35,7 +34,7 @@ if not creds or not creds.valid:
 calendar_service = build('calendar', 'v3', credentials=creds)
 
 
-def add_attachments(calendar_id: str, event_id: str, files_urls: list) -> None:
+def add_attachments(calendar_id: str, event_id: str, files_urls: list) -> str:
     """
     Adds url of drive file 'file_id' to calendar event 'event_id'
     """
