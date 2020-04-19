@@ -23,14 +23,14 @@ class DaemonApp:
 
     def invoke_merge_events(self):
         session = Session()
-        process_record = session.query(Record).filter(Record.processing is True).first()
+        process_record = session.query(Record).filter(Record.processing == True).first()
 
         if process_record:
             session.close()
             return
 
-        records_to_create = session.query(Record).filter(Record.done is False,
-                                                         Record.processing is False).all()
+        records_to_create = session.query(Record).filter(Record.done == False,
+                                                         Record.processing == False).all()
 
         now_moscow = datetime.now() + timedelta(hours=3)
         try:
