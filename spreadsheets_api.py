@@ -12,7 +12,7 @@ SCOPES = 'https://www.googleapis.com/auth/spreadsheets.readonly'
 Setting up calendar
 """
 creds = None
-token_path = '/merger/.creds/tokenCalendar.pickle'
+token_path = '/merger/.creds/tokenSheets.pickle'
 creds_path = '/merger/.creds/credentials.json'
 
 if os.path.exists(token_path):
