@@ -32,7 +32,7 @@ class DaemonApp:
         records_to_create = session.query(Record).filter(Record.done == False,
                                                          Record.processing == False).all()
 
-        now_moscow = datetime.now() + timedelta(hours=3)
+        now_moscow = datetime.now()
         try:
             record = next(record for record in records_to_create
                           if now_moscow >= datetime.strptime(f'{record.date} {record.end_time}', '%Y-%m-%d %H:%M'))
