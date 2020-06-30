@@ -9,7 +9,7 @@ RUN apt-get -y install libpq-dev postgresql postgresql-contrib
 COPY ./merger /merger
 COPY ./requirements.txt /
 
-RUN pip3 install --no-cache-dir -r requirements.txt
+RUN pip3 install -r requirements.txt
 RUN mkdir /root/vids
 
 CMD ["python3", "/merger/app.py"]
