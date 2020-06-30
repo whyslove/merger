@@ -5,12 +5,13 @@ from datetime import datetime, timedelta
 import requests
 import schedule
 
-from calendar_api import add_attachments
-from classroom_api import create_assignment
-from driveAPI import get_folders_by_name, share_file
-from merge import get_files, create_merge
-from models import Session, Record, Room
-from spreadsheets_api import get_data
+from core.apis.calendar_api import add_attachments
+from core.apis.classroom_api import create_assignment
+from core.apis.driveAPI import get_folders_by_name, share_file
+from core.apis.spreadsheets_api import get_data
+
+from core.db.models import Session, Record, Room
+from core.merge import get_files, create_merge
 
 
 class DaemonApp:
@@ -23,7 +24,8 @@ class DaemonApp:
 
     def invoke_merge_events(self):
         session = Session()
-        process_record = session.query(Record).filter(Record.processing == True).first()
+        process_record = session.query(Record).filter(
+            Record.processing == True).first()
 
         if process_record:
             session.close()
@@ -77,12 +79,14 @@ class DaemonApp:
                                                   file_urls)
 
                     course_code = description.split('\n')[0]
-                    courses = get_data(self.class_sheet_id, self.class_sheet_range)
+                    courses = get_data(self.class_sheet_id,
+                                       self.class_sheet_range)
 
                     course_id = self.get_course_by_code(course_code, courses)
 
                     if course_id:
-                        create_assignment(course_id, record.event_name, file_urls)
+                        create_assignment(
+                            course_id, record.event_name, file_urls)
                 except:
                     traceback.print_exc()
 
@@ -110,7 +114,8 @@ class DaemonApp:
             if course[0].strip() == course_code:
                 return course[1].strip()
 
-        raise RuntimeError(f"Курс с предметной единицей '{course_code}' не найден")
+        raise RuntimeError(
+            f"Курс с предметной единицей '{course_code}' не найден")
 
     def send_zulip_msg(self, email, msg):
         res = requests.post('http://172.18.130.41:8080/api/send-msg', json={

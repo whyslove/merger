@@ -6,8 +6,10 @@ ENV TZ=Europe/Moscow
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 RUN apt-get -y install libpq-dev postgresql postgresql-contrib
 
-COPY . /merger
-RUN pip3 install --no-cache-dir -r /merger/requirements.txt
+COPY ./merger /merger
+COPY ~/creds /merger/creds
+
+RUN pip3 install --no-cache-dir -r ./requirements.txt
 RUN mkdir /root/vids
 
 CMD ["python3", "/merger/app.py"]

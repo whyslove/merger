@@ -12,8 +12,8 @@ SCOPES = 'https://www.googleapis.com/auth/spreadsheets.readonly'
 Setting up calendar
 """
 creds = None
-token_path = '/merger/.creds/tokenSheets.pickle'
-creds_path = '/merger/.creds/credentials.json'
+token_path = '/merger/creds/tokenSheets.pickle'
+creds_path = '/merger/creds/credentials.json'
 
 if os.path.exists(token_path):
     with open(token_path, 'rb') as token:
@@ -31,6 +31,7 @@ sheets_service = build('sheets', 'v4', credentials=creds)
 
 
 def get_data(sheet_id: str, range: str) -> list:
-    result = sheets_service.spreadsheets().values().get(spreadsheetId=sheet_id, range=range).execute()
+    result = sheets_service.spreadsheets().values().get(
+        spreadsheetId=sheet_id, range=range).execute()
 
     return result.get('values', [])
