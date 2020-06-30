@@ -69,7 +69,7 @@ def get_files(record: Record, room: Room) -> tuple:
                                      f'{HOME}/vids/{screen_file_name}',
                                      '-frames:', '1', '-y', 'cutted_frame.png', ])
         cut_proc.wait()
-        im_example = Image.open(r"/merger/example.png")
+        im_example = Image.open(r"/merger/core/example.png")
         im_cutted = Image.open(r"cutted_frame.png")
         try:
             equal(im_example, im_cutted)
