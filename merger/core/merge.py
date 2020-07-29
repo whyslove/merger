@@ -68,7 +68,7 @@ def get_files(record: Record, room: Room) -> tuple:
         except Exception as e:
             print(e)
 
-            if (datetime.now() - date_time_end).seconds // 3600 >= 1:
+            if (datetime.now() - date_time_end).total_seconds() // 3600 >= 1:
                 return tuple()
 
         # Проверка на полотна
@@ -116,10 +116,10 @@ def create_merge(cameras_file_name: str, screens_file_name: str,
         cam_proc.wait()
         screen_proc.wait()
 
-        time_to_cut_1 = int(start_time.split(
-            ':')[1]) - int(round_start_time.split(':')[1])
-        time_to_cut_2 = int(round_end_time.split(
-            ':')[1]) + 30 - int(end_time.split(':')[1])
+        time_to_cut_1 = abs((datetime.strptime('%H:%M', start_time) -
+                             datetime.strptime('%H:%M', round_start_time)).total_seconds() // 60)
+        time_to_cut_2 = abs((datetime.strptime('%H:%M', end_time) -
+                             datetime.strptime('%H:%M', round_end_time)).total_seconds() // 60)
 
         with open(f'{HOME}/vids/{cameras_file_name}') as cams_file:
             duration = len(cams_file.readlines()) * 30 - time_to_cut_1 - time_to_cut_2
@@ -160,8 +160,7 @@ def create_merge(cameras_file_name: str, screens_file_name: str,
                                   f'{HOME}/vids/{start_time}_{end_time}_final.mp4'], shell=False)
         os.system("renice -n 20 %s" % (first.pid,))
         first.wait()
-        os.remove(
-            f'{HOME}/vids/cam_clipped_{start_time}_{end_time}.mp4')
+        os.remove(f'{HOME}/vids/cam_clipped_{start_time}_{end_time}.mp4')
 
         file_id = ''
         backup_file_id = ''
@@ -171,8 +170,7 @@ def create_merge(cameras_file_name: str, screens_file_name: str,
 
         if event_name is not None:
             file_name = f'{event_name.replace(" ", "_")}_' + file_name
-            backup_file_name = f'{event_name.replace(" ", "_")}_' + \
-                               backup_file_name
+            backup_file_name = f'{event_name.replace(" ", "_")}_' + backup_file_name
 
         try:
             os.rename(f'{HOME}/vids/{start_time}_{end_time}_final.mp4',
