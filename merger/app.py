@@ -1,6 +1,6 @@
 import time
 import traceback
-from datetime import datetime, timedelta
+from datetime import datetime
 
 import requests
 import schedule
@@ -9,14 +9,14 @@ from core.apis.calendar_api import add_attachments
 from core.apis.classroom_api import create_assignment
 from core.apis.driveAPI import get_folders_by_name, share_file
 from core.apis.spreadsheets_api import get_data
-
 from core.db.models import Session, Record, Room
+from core.exceptions.exceptions import FilesNotFoundException
 from core.merge import get_files, create_merge
 
 
 class DaemonApp:
     class_sheet_id = '1_YP63y3URvKCMXjHJC7neOJRk1Uyj6DEJTL0jkLYOEI'
-    class_sheet_range = 'A2:B500'
+    class_sheet_range = 'A2:B1000'
 
     def __init__(self):
         schedule.every().hour.at(":00").do(self.invoke_merge_events)
@@ -24,8 +24,7 @@ class DaemonApp:
 
     def invoke_merge_events(self):
         session = Session()
-        process_record = session.query(Record).filter(
-            Record.processing == True).first()
+        process_record = session.query(Record).filter(Record.processing == True).first()
 
         if process_record:
             session.close()
@@ -37,7 +36,7 @@ class DaemonApp:
         now_moscow = datetime.now()
         try:
             record = next(record for record in records_to_create
-                          if now_moscow >= datetime.strptime(f'{record.date} {record.end_time}', '%Y-%m-%d %H:%M'))
+                          if now_moscow > datetime.strptime(f'{record.date} {record.end_time}', '%Y-%m-%d %H:%M'))
         except StopIteration:
             print(f'Records not found at {now_moscow}')
             session.close()
@@ -53,8 +52,17 @@ class DaemonApp:
 
             calendar_id = room.calendar if record.event_id else None
             folder_id = self.get_folder_id(record.date, room)
-            cameras_file_name, screens_file_name, rounded_start_time, rounded_end_time = get_files(
-                record, room)
+            cameras_file_name, screens_file_name, rounded_start_time, rounded_end_time = get_files(record, room)
+
+            if not cameras_file_name or \
+                    not screens_file_name or \
+                    not rounded_start_time or \
+                    not rounded_end_time:
+                self.send_zulip_msg(record.user_email,
+                                    "Некоторые исходные видео для вашей склейки NVR не были найдены на Google-диске, "
+                                    "и при подготовке склейки произошла ошибка")
+
+                raise FilesNotFoundException("Некоторые исходные видео не были найдены на Google-диске.")
 
             file_id, backup_file_id = create_merge(cameras_file_name, screens_file_name,
                                                    rounded_start_time, rounded_end_time,
