@@ -19,8 +19,7 @@ class DaemonApp:
     class_sheet_range = 'A2:B1000'
 
     def __init__(self):
-        schedule.every().hour.at(":00").do(self.invoke_merge_events)
-        schedule.every().hour.at(":30").do(self.invoke_merge_events)
+        schedule.every(10).minutes.do(self.invoke_merge_events)
 
     def invoke_merge_events(self):
         session = Session()
