@@ -1,5 +1,6 @@
 import os
 import subprocess
+import time
 from datetime import datetime
 from pathlib import Path
 from threading import RLock
@@ -116,10 +117,10 @@ def create_merge(cameras_file_name: str, screens_file_name: str,
         cam_proc.wait()
         screen_proc.wait()
 
-        time_to_cut_1 = abs((datetime.strptime('%H:%M', start_time) -
-                             datetime.strptime('%H:%M', round_start_time)).total_seconds() // 60)
-        time_to_cut_2 = abs((datetime.strptime('%H:%M', end_time) -
-                             datetime.strptime('%H:%M', round_end_time)).total_seconds() // 60)
+        time_to_cut_1 = abs((time.mktime(time.strptime(start_time, '%H:%M')) -
+                             time.mktime(time.strptime(round_start_time, '%H:%M'))) // 60)
+        time_to_cut_2 = abs((time.mktime(time.strptime(end_time, '%H:%M')) -
+                             time.mktime(time.strptime(round_end_time, '%H:%M'))) // 60)
 
         with open(f'{HOME}/vids/{cameras_file_name}') as cams_file:
             duration = len(cams_file.readlines()) * 30 - time_to_cut_1 - time_to_cut_2
