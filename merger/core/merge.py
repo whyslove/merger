@@ -130,6 +130,10 @@ def create_merge(cameras_file_name: str, screens_file_name: str,
         vid_dur = f'{hours}:{minutes}:00'
         vid_start = f'00:{time_to_cut_1}:00' if time_to_cut_1 > 9 else f'00:0{time_to_cut_1}:00'
 
+        print(start_time)
+        print(round_start_time)
+        print(end_time)
+        print(round_end_time)
         print(time_to_cut_1)
         print(time_to_cut_2)
         print(f"Duration: {duration}")
