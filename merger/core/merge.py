@@ -97,7 +97,8 @@ def get_files(record: Record, room: Room) -> tuple:
     screens_file.close()
 
     rounded_start_time = cam_file_names[0].split("_")[1]
-    rounded_end_time = cam_file_names[-1].split("_")[1]
+    rounded_end_time = cam_file_names[-1].split("_")[1] if len(cam_file_names) > 1 \
+        else record.end_time.strftime("%H:%M")
 
     return cameras_file_name, screens_file_name, rounded_start_time, rounded_end_time
 
