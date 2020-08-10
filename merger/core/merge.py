@@ -70,7 +70,7 @@ def get_files(record: Record, room: Room) -> tuple:
             print(e)
 
             if (datetime.now() - date_time_end).total_seconds() // 3600 >= 1:
-                return tuple()
+                return tuple(None, None, None, None)
 
         # Проверка на полотна
         cut_proc = subprocess.Popen(['ffmpeg', '-ss', '00:00:01', '-i',
@@ -119,15 +119,18 @@ def create_merge(cameras_file_name: str, screens_file_name: str,
         screen_proc.wait()
 
         time_to_cut_1 = abs(int((time.mktime(time.strptime(start_time, '%H:%M')) -
-                             time.mktime(time.strptime(round_start_time, '%H:%M'))) // 60))
+                                 time.mktime(time.strptime(round_start_time, '%H:%M'))) // 60))
         time_to_cut_2 = abs(int((time.mktime(time.strptime(end_time, '%H:%M')) -
-                             time.mktime(time.strptime(round_end_time, '%H:%M'))) // 60))
+                                 time.mktime(time.strptime(round_end_time, '%H:%M'))) // 60))
 
         with open(f'{HOME}/vids/{cameras_file_name}') as cams_file:
-            duration = len(cams_file.readlines()) * 30 - time_to_cut_1 - time_to_cut_2
+            duration = len(cams_file.readlines()) * 30 - \
+                time_to_cut_1 - time_to_cut_2
 
-        hours = f'{duration // 60}' if (duration // 60) > 9 else f'0{duration // 60}'
-        minutes = f'{duration % 60}' if (duration % 60) > 9 else f'0{duration % 60}'
+        hours = f'{duration // 60}' if (duration //
+                                        60) > 9 else f'0{duration // 60}'
+        minutes = f'{duration % 60}' if (
+            duration % 60) > 9 else f'0{duration % 60}'
         vid_dur = f'{hours}:{minutes}:00'
         vid_start = f'00:{time_to_cut_1}:00' if time_to_cut_1 > 9 else f'00:0{time_to_cut_1}:00'
 
@@ -173,7 +176,8 @@ def create_merge(cameras_file_name: str, screens_file_name: str,
 
         if event_name is not None:
             file_name = f'{event_name.replace(" ", "_")}_' + file_name
-            backup_file_name = f'{event_name.replace(" ", "_")}_' + backup_file_name
+            backup_file_name = f'{event_name.replace(" ", "_")}_' + \
+                backup_file_name
 
         try:
             os.rename(f'{HOME}/vids/{start_time}_{end_time}_final.mp4',

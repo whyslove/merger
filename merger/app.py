@@ -23,7 +23,8 @@ class DaemonApp:
 
     def invoke_merge_events(self):
         session = Session()
-        process_record = session.query(Record).filter(Record.processing == True).first()
+        process_record = session.query(Record).filter(
+            Record.processing == True).first()
 
         if process_record:
             session.close()
@@ -51,7 +52,8 @@ class DaemonApp:
 
             calendar_id = room.calendar if record.event_id else None
             folder_id = self.get_folder_id(record.date, room)
-            cameras_file_name, screens_file_name, rounded_start_time, rounded_end_time = get_files(record, room)
+            cameras_file_name, screens_file_name, rounded_start_time, rounded_end_time = get_files(
+                record, room)
 
             if not cameras_file_name or \
                     not screens_file_name or \
@@ -61,7 +63,8 @@ class DaemonApp:
                                     "Некоторые исходные видео для вашей склейки NVR не были найдены на Google-диске, "
                                     "и при подготовке склейки произошла ошибка")
 
-                raise FilesNotFoundException("Некоторые исходные видео не были найдены на Google-диске.")
+                raise FilesNotFoundException(
+                    "Некоторые исходные видео не были найдены на Google-диске.")
 
             file_id, backup_file_id = create_merge(cameras_file_name, screens_file_name,
                                                    rounded_start_time, rounded_end_time,
