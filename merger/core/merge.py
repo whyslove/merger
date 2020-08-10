@@ -100,8 +100,8 @@ def get_files(record: Record, room: Room) -> tuple:
                 screens_file.write(
                     f"file '{HOME}/vids/{reserve_cam_file_name}'\n")
 
-        im_example.close()
-        im_cutted.close()
+            im_example.close()
+            im_cutted.close()
 
     cams_file.close()
     screens_file.close()
