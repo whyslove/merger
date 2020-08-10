@@ -52,13 +52,9 @@ class DaemonApp:
 
             calendar_id = room.calendar if record.event_id else None
             folder_id = self.get_folder_id(record.date, room)
-            cameras_file_name, screens_file_name, rounded_start_time, rounded_end_time = get_files(
-                record, room)
+            files = get_files(record, room)
 
-            if not cameras_file_name or \
-                    not screens_file_name or \
-                    not rounded_start_time or \
-                    not rounded_end_time:
+            if not files:
                 self.send_zulip_msg(record.user_email,
                                     "Некоторые исходные видео для вашей склейки NVR не были найдены на Google-диске, "
                                     "и при подготовке склейки произошла ошибка")
@@ -66,6 +62,7 @@ class DaemonApp:
                 raise FilesNotFoundException(
                     "Некоторые исходные видео не были найдены на Google-диске.")
 
+            cameras_file_name, screens_file_name, rounded_start_time, rounded_end_time = files
             file_id, backup_file_id = create_merge(cameras_file_name, screens_file_name,
                                                    rounded_start_time, rounded_end_time,
                                                    record.start_time, record.end_time, folder_id,

@@ -70,7 +70,7 @@ def get_files(record: Record, room: Room) -> tuple:
             print(e)
 
             if (datetime.now() - date_time_end).total_seconds() // 3600 >= 1:
-                return tuple(None, None, None, None)
+                return tuple()
 
         # Проверка на полотна
         cut_proc = subprocess.Popen(['ffmpeg', '-ss', '00:00:01', '-i',
