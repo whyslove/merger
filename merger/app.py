@@ -129,7 +129,6 @@ class DaemonApp:
             "email": email,
             "msg": msg
         })
-        print(res)
 
     def run(self):
         while True:

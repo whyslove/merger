@@ -58,37 +58,47 @@ def get_files(record: Record, room: Room) -> tuple:
 
     for cam_file_name, screen_file_name, reserve_cam_file_name in zip(cam_file_names, screen_file_names,
                                                                       reserve_cam_file_names):
+        reserve_cam_file_id = ""
         try:
             cam_file_id = get_video_by_name(cam_file_name)
             download_video(cam_file_id, cam_file_name)
-
             cams_file.write(f"file '{HOME}/vids/{cam_file_name}'\n")
 
-            screen_file_id = get_video_by_name(screen_file_name)
-            download_video(screen_file_id, screen_file_name)
+            try:
+                screen_file_id = get_video_by_name(screen_file_name)
+                download_video(screen_file_id, screen_file_name)
+            except Exception as e:
+                reserve_cam_file_id = get_video_by_name(reserve_cam_file_name)
+                download_video(reserve_cam_file_id, reserve_cam_file_name)
+                screens_file.write(
+                    f"file '{HOME}/vids/{reserve_cam_file_name}'\n")
+
         except Exception as e:
-            print(e)
+            print("Files not found:", cam_file_name,
+                  screen_file_name, reserve_cam_file_name)
 
             if (datetime.now() - date_time_end).total_seconds() // 3600 >= 1:
                 return tuple()
 
         # Проверка на полотна
-        cut_proc = subprocess.Popen(['ffmpeg', '-ss', '00:00:01', '-i',
-                                     f'{HOME}/vids/{screen_file_name}',
-                                     '-frames:', '1', '-y', 'cutted_frame.png', ])
-        cut_proc.wait()
-        im_example = Image.open(r"/merger/core/example.png")
-        im_cutted = Image.open(r"cutted_frame.png")
-        try:
-            equal(im_example, im_cutted)
-        except:
-            print("Merging with presentation")
-            screens_file.write(f"file '{HOME}/vids/{screen_file_name}'\n")
-        else:
-            print("No presentation provided")
-            reserve_cam_file_id = get_video_by_name(reserve_cam_file_name)
-            download_video(reserve_cam_file_id, reserve_cam_file_name)
-            screens_file.write(f"file '{HOME}/vids/{reserve_cam_file_name}'\n")
+        if not reserve_cam_file_id:
+            cut_proc = subprocess.Popen(['ffmpeg', '-ss', '00:00:01', '-i',
+                                         f'{HOME}/vids/{screen_file_name}',
+                                         '-frames:', '1', '-y', 'cutted_frame.png', ])
+            cut_proc.wait()
+            im_example = Image.open(r"/merger/core/example.png")
+            im_cutted = Image.open(r"cutted_frame.png")
+            try:
+                equal(im_example, im_cutted)
+            except:
+                print("Merging with presentation")
+                screens_file.write(f"file '{HOME}/vids/{screen_file_name}'\n")
+            else:
+                print("No presentation provided")
+                reserve_cam_file_id = get_video_by_name(reserve_cam_file_name)
+                download_video(reserve_cam_file_id, reserve_cam_file_name)
+                screens_file.write(
+                    f"file '{HOME}/vids/{reserve_cam_file_name}'\n")
 
         im_example.close()
         im_cutted.close()
