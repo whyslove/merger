@@ -34,19 +34,9 @@ class DaemonApp:
                                                          Record.processing == False).all()
 
         now_moscow = datetime.now()
-        record_end_time = datetime.strptime(
-            f'{record.date} {record.end_time}', '%Y-%m-%d %H:%M')
-        # Record from future
-        if record_end_time.minute in [0, 30]:
-            delta = 10
-        elif 30 > record_end_time.minute > 0:
-            delta = 30 - record_end_time.minute + 10
-        else:
-            delta = 60 - record_end_time.minute + 10
-
         try:
             record = next(record for record in records_to_create
-                          if now_moscow >= record_end_time + timedelta(minutes=delta))
+                          if now_moscow >= self.planned_drive_upload(record))
         except StopIteration:
             print(f'Records not found at {now_moscow}')
             session.close()
@@ -114,6 +104,19 @@ class DaemonApp:
             record.done = True
             session.commit()
             session.close()
+
+    def planned_drive_upload(self, record):
+        record_end_time = datetime.strptime(
+            f'{record.date} {record.end_time}', '%Y-%m-%d %H:%M')
+        # Record from future
+        if record_end_time.minute in [0, 30]:
+            delta = 10
+        elif 30 > record_end_time.minute > 0:
+            delta = 30 - record_end_time.minute + 10
+        else:
+            delta = 60 - record_end_time.minute + 10
+
+        return record_end_time + timedelta(minutes=delta)
 
     def get_folder_id(self, date: str, room: Room) -> str:
         folders = get_folders_by_name(date)
