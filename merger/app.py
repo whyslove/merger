@@ -130,10 +130,10 @@ class DaemonApp:
         return folder_id
 
     def get_course_by_code(self, course_code: str, courses: list) -> str:
-        for course in courses:
-            if course[0].strip() == course_code:
-                return course[1].strip()
-
+        try:
+            course = next(
+                course for course in courses if course[0].strip() == course_code)
+            return course[1].strip()
         raise RuntimeError(
             f"Курс с предметной единицей '{course_code}' не найден")
 
