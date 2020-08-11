@@ -134,8 +134,9 @@ class DaemonApp:
             course = next(
                 course for course in courses if course[0].strip() == course_code)
             return course[1].strip()
-        raise RuntimeError(
-            f"Курс с предметной единицей '{course_code}' не найден")
+        except StopIteration:
+            raise RuntimeError(
+                f"Курс с предметной единицей '{course_code}' не найден")
 
     def send_zulip_msg(self, email, msg):
         res = requests.post('http://172.18.130.41:8080/api/send-msg', json={
