@@ -152,4 +152,5 @@ class DaemonApp:
 
 if __name__ == "__main__":
     daemon_app = DaemonApp()
+    daemon_app.invoke_merge_events()
     daemon_app.run()
