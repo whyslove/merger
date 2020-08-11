@@ -85,7 +85,7 @@ class DaemonApp:
                                                   record.event_id,
                                                   file_urls)
 
-                    course_code = description.split('\n')[0]
+                    course_code = description.split('\n')[0].strip()
                     courses = get_data(self.class_sheet_id,
                                        self.class_sheet_range)
 
