@@ -132,7 +132,7 @@ class DaemonApp:
     def get_course_by_code(self, course_code: str, courses: list) -> str:
         try:
             course = next(
-                course for course in courses if course[0].strip() == course_code)
+                course for course in courses if course and course[0].strip() == course_code)
             return course[1].strip()
         except StopIteration:
             raise RuntimeError(
