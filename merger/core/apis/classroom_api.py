@@ -6,7 +6,8 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 
 SCOPES = ['https://www.googleapis.com/auth/classroom.courses.readonly',
-          'https://www.googleapis.com/auth/classroom.coursework.students']
+          'https://www.googleapis.com/auth/classroom.coursework.students',
+          'https://www.googleapis.com/auth/classroom.announcements']
 TOKEN_PATH = '/merger/creds/tokenClassroom.pickle'
 CREDS_PATH = '/merger/creds/classroom_creds.json'
 
