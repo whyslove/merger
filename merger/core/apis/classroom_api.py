@@ -41,11 +41,13 @@ def create_announcement(course_id: str, title: str, file_ids: list, file_urls: l
         "materials": [
             {
                 "driveFile": {
-                    "id": id,
-                    "title": title,
-                    "alternateLink": link,
-                },
-                "shareMode": "VIEW"
+                    "driveFile": {
+                        "id": id,
+                        "title": title,
+                        "alternateLink": link,
+                    },
+                    "shareMode": "VIEW"
+                }
             } for id, link in zip(file_ids, file_urls)
         ],
     }
