@@ -34,18 +34,23 @@ def get_all_courses():
     return courses
 
 
-def create_assignment(course_id, title, files):
+def create_announcement(course_id: str, title: str, file_ids: list, file_urls: list) -> dict:
     body = {
-        'title': title,
-        'description': '\n'.join(files),
-        'workType': 'ASSIGNMENT',
-        'state': 'PUBLISHED',
+        'text': title,
+        "materials": [
+            {
+                "driveFile": {
+                    "id": id,
+                    "title": title,
+                    "alternateLink": link,
+                },
+                "shareMode": "VIEW"
+            } for id, link in zip(file_ids, file_urls)
+        ],
     }
 
-    work = classroom_service.courses().courseWork().create(
+    return classroom_service.courses().announcements().create(
         courseId=course_id, body=body).execute()
-
-    return work
 
 
 def get_course_by_code(course_code):
