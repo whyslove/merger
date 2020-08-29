@@ -45,7 +45,7 @@ def add_attachments(calendar_id: str, event_id: str, files_urls: list) -> str:
         description = event.get('description', '')
 
         changes = {
-            'description': description + ''.join(files_urls)
+            'description': description + '\n' + '\n'.join(files_urls)
         }
 
         calendar_service.events().patch(calendarId=calendar_id, eventId=event_id,

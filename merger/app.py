@@ -78,7 +78,7 @@ class DaemonApp:
                 try:
                     file_ids = [file_id, backup_file_id]
                     file_urls = [
-                        f"\nhttps://drive.google.com/a/auditory.ru/file/d/{file_id}/view?usp=drive_web"
+                        f"https://drive.google.com/a/auditory.ru/file/d/{file_id}/view?usp=drive_web"
                         for file_id in file_ids]
 
                     description = add_attachments(calendar_id,
