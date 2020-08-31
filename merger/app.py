@@ -10,8 +10,8 @@ from core.apis.classroom_api import create_announcement
 from core.apis.driveAPI import get_folders_by_name, share_file
 from core.apis.spreadsheets_api import get_data
 from core.db.models import Session, Record, Room
-from core.exceptions.exceptions import FilesNotFoundException
-from core.merge import get_files, create_merge
+from core.exceptions.exceptions import FilesNotFoundException, NoCourseCode
+from core.merge import get_files, create_merge, parse_description
 
 
 class DaemonApp:
@@ -84,8 +84,11 @@ class DaemonApp:
                     description = add_attachments(calendar_id,
                                                   record.event_id,
                                                   file_urls)
+                    desc_json = parse_description(description)
+                    if not desc_json.get('поток'):
+                        raise NoCourseCode("Код курса не указан в событии -- публикации не может быть")
 
-                    course_code = description.split('\n')[0].strip()
+                    course_code = desc_json['поток']
                     courses = get_data(self.class_sheet_id,
                                        self.class_sheet_range)
 

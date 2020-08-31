@@ -6,12 +6,16 @@ from pathlib import Path
 from threading import RLock
 
 from PIL import Image, ImageChops
+import html2text
 
 from .apis.driveAPI import upload_video, download_video, get_video_by_name
 from .db.models import Record, Room
 
 LOCK = RLock()
 HOME = str(Path.home())
+
+h = html2text.HTML2Text()
+h.ignore_links = True
 
 
 def get_dates_between_timestamps(start_timestamp: int, stop_timestamp: int) -> list:
@@ -210,3 +214,10 @@ def create_merge(cameras_file_name: str, screens_file_name: str,
 # additional function for comparing images
 def equal(im1, im2):
     return ImageChops.difference(im1, im2).getbbox() is None
+
+
+def parse_description(desc):
+    desc = h.handle(
+                desc) if '\n' not in desc else desc
+    return {s.split(':')[0].strip().lower(): s.split(':', maxsplit=1)[1].strip()
+                    for s in desc.split('\n') if s}
