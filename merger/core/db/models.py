@@ -20,6 +20,7 @@ class Record(Base):
     end_time = Column(String(100), nullable=False)
     user_email = Column(String(100), nullable=False)
     event_id = Column(String(200))
+    drive_file_url = Column(String(200))
     
     done = Column(Boolean, nullable=False, default=False)
     processing = Column(Boolean, default=False)

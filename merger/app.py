@@ -67,7 +67,7 @@ class DaemonApp:
                                                    rounded_start_time, rounded_end_time,
                                                    record.start_time, record.end_time, folder_id,
                                                    record.event_name)
-
+            record.drive_file_url = f'https://drive.google.com/file/d/{file_id}/preview'
             share_file(file_id, record.user_email)
             share_file(backup_file_id, record.user_email)
             self.send_zulip_msg(record.user_email,
