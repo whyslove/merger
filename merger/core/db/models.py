@@ -21,18 +21,10 @@ class Record(Base):
     user_email = Column(String(100), nullable=False)
     event_id = Column(String(200))
     drive_file_url = Column(String(200))
-    
-    done = Column(Boolean, nullable=False, default=False)
-    processing = Column(Boolean, default=False)
 
-    def update_from_calendar(self, **kwargs):
-        self.event_id = kwargs.get('id')
-        self.event_name = kwargs.get('summary')
-        self.date = kwargs['start']['dateTime'].split('T')[0]
-        self.start_time = kwargs['start']['dateTime'].split('T')[1][:5]
-        self.end_time = kwargs['end']['dateTime'].split('T')[1][:5]
-        self.room_name = kwargs['room_name']
-        self.user_email = kwargs['creator']['email']
+    done = Column(Boolean, nullable=False, default=False)
+    processing = Column(Boolean, nullable=False, default=False)
+    error = Column(Boolean, nullable=False, default=False)
 
 
 class Room(Base):

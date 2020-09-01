@@ -27,6 +27,8 @@ class DaemonApp:
             Record.processing == True).first()
 
         if process_record:
+            print(
+                f'Processing now {process_record.id}: {process_record.event_name}')
             session.close()
             return
 
@@ -52,13 +54,17 @@ class DaemonApp:
 
             calendar_id = room.calendar if record.event_id else None
             folder_id = self.get_folder_id(record.date, room)
-            files = get_files(record, room)
 
-            if not files:
+            try:
+                files = get_files(record, room)
+                if not files:
+                    raise
+            except:
                 self.send_zulip_msg(record.user_email,
-                                    "Некоторые исходные видео для вашей склейки NVR не были найдены на Google-диске, "
-                                    "и при подготовке склейки произошла ошибка")
-
+                                    f'Некоторые исходные видео для вашей склейки "{record.event_name}" в NVR не были найдены на Google-диске, '
+                                    'и при подготовке склейки произошла ошибка')
+                # logger.error("Some videos not found on Google Drive")
+                record.error = True
                 raise FilesNotFoundException(
                     "Некоторые исходные видео не были найдены на Google-диске.")
 
@@ -67,42 +73,48 @@ class DaemonApp:
                                                    rounded_start_time, rounded_end_time,
                                                    record.start_time, record.end_time, folder_id,
                                                    record.event_name)
+
             record.drive_file_url = f'https://drive.google.com/file/d/{file_id}/preview'
+            session.commit()
+
             share_file(file_id, record.user_email)
             share_file(backup_file_id, record.user_email)
             self.send_zulip_msg(record.user_email,
                                 f'Ваша склейка в NVR готова: '
                                 f'https://drive.google.com/a/auditory.ru/file/d/{file_id}/view?usp=drive_web')
 
-            if calendar_id:
-                try:
-                    file_ids = [file_id, backup_file_id]
-                    file_urls = [
-                        f"https://drive.google.com/a/auditory.ru/file/d/{file_id}/view?usp=drive_web"
-                        for file_id in file_ids]
+            if not calendar_id:
+                return
 
-                    description = add_attachments(calendar_id,
-                                                  record.event_id,
-                                                  file_urls)
-                    desc_json = parse_description(description)
-                    if not desc_json.get('поток'):
-                        raise NoCourseCode("Код курса не указан в событии -- публикации не может быть")
+            file_ids = [file_id, backup_file_id]
+            file_urls = [
+                f"https://drive.google.com/a/auditory.ru/file/d/{file_id}/view?usp=drive_web"
+                for file_id in file_ids]
 
-                    course_code = desc_json['поток']
-                    courses = get_data(self.class_sheet_id,
-                                       self.class_sheet_range)
+            description = add_attachments(calendar_id,
+                                          record.event_id,
+                                          file_urls)
+            desc_json = parse_description(description)
 
-                    course_id = self.get_course_by_code(course_code, courses)
-                    if course_id:
-                        create_announcement(
-                            course_id, record.event_name, file_ids, file_urls)
+            course_code = desc_json.get('поток')
+            if not course_code:
+                # logger.info("Course code not provided")
+                return
 
-                except:
-                    traceback.print_exc()
+            courses = get_data(self.class_sheet_id,
+                               self.class_sheet_range)
+
+            course_id = self.get_course_by_code(course_code, courses)
+            if not course_id:
+                # logger.info("Course id not found in spreadsheet")
+                return
+
+            create_announcement(
+                course_id, record.event_name, file_ids, file_urls)
 
         except:
-            traceback.print_exc()
-        finally:
+            traceback.print_exc()  # Это не нужно будет при логах, как и кидать ошибки
+        finally:  # можно будет сделать красиво defer
             record.processing = False
             record.done = True
             session.commit()
@@ -121,6 +133,7 @@ class DaemonApp:
 
         return record_end_time + timedelta(minutes=delta)
 
+    # 2 unobvious tricks. Better contact a creator
     def get_folder_id(self, date: str, room: Room) -> str:
         folders = get_folders_by_name(date)
 
@@ -132,15 +145,15 @@ class DaemonApp:
 
         return folder_id
 
-    def get_course_by_code(self, course_code: str, courses: list) -> str:
+    def get_course_by_code(self, course_code: str, courses: list) -> str or None:
         try:
-            course = next(
+            course_row = next(
                 course for course in courses if course and course[0].strip() == course_code)
-            return course[1].strip()
+            return course_row[1].strip()
         except StopIteration:
-            raise RuntimeError(
-                f"Курс с предметной единицей '{course_code}' не найден")
+            return None
 
+    # change to own NVR notifier
     def send_zulip_msg(self, email, msg):
         res = requests.post('http://172.18.130.41:8080/api/send-msg', json={
             "email": email,

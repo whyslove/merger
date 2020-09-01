@@ -216,8 +216,13 @@ def equal(im1, im2):
     return ImageChops.difference(im1, im2).getbbox() is None
 
 
-def parse_description(desc):
-    desc = h.handle(
-                desc) if '\n' not in desc else desc
-    return {s.split(':')[0].strip().lower(): s.split(':', maxsplit=1)[1].strip()
-                    for s in desc.split('\n') if s}
+def parse_description(description_raw: str) -> dict:
+    if '\n' not in description_raw:
+        description_raw = h.handle(description_raw)
+
+    description_json = {}
+    for row in description_raw.split('\n'):
+        key, value = row.split(':')
+        description_json[key.strip().lower()] = value.strip()
+
+    return description_json
