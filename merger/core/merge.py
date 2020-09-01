@@ -88,10 +88,10 @@ def get_files(record: Record, room: Room) -> tuple:
         if not reserve_cam_file_id:
             cut_proc = subprocess.Popen(['ffmpeg', '-ss', '00:00:01', '-i',
                                          f'{HOME}/vids/{screen_file_name}',
-                                         '-frames:', '1', '-y', 'cutted_frame.png', ])
+                                         '-frames:', '1', '-y', f'{HOME}/vids/cutted_frame.png', ])
             cut_proc.wait()
-            im_example = Image.open(r"/merger/core/example.png")
-            im_cutted = Image.open(r"cutted_frame.png")
+            im_example = Image.open("/merger/core/example.png")
+            im_cutted = Image.open(f"{HOME}/vids/cutted_frame.png")
             try:
                 equal(im_example, im_cutted)
             except:
