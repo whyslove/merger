@@ -115,6 +115,7 @@ class DaemonApp:
         except:
             traceback.print_exc()  # Это не нужно будет при логах, как и кидать ошибки
         finally:  # можно будет сделать красиво defer
+            print(f'{record.id} {record.event_name} done')
             record.processing = False
             record.done = True
             session.commit()
