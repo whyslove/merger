@@ -217,12 +217,15 @@ def equal(im1, im2):
 
 
 def parse_description(description_raw: str) -> dict:
+    print(f'Got description to parse: {description_raw}')
     if '\n' not in description_raw:
         description_raw = h.handle(description_raw)
 
     description_json = {}
     for row in description_raw.split('\n'):
-        key, value = row.split(':')
-        description_json[key.strip().lower()] = value.strip()
+        row_data = row.split(':')
+        if len(row_data) == 2:
+            key, value = row_data
+            description_json[key.strip().lower()] = value.strip()
 
     return description_json
