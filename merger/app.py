@@ -24,9 +24,7 @@ class DaemonApp:
         schedule.every(10).minutes.do(self.invoke_merge_events)
 
     def invoke_merge_events(self):
-        now_moscow = datetime.now()
-
-        self.logger.info(f'Starting merge check at {now_moscow}')
+        self.logger.info(f'Starting merge check')
 
         session = Session()
         process_record = session.query(Record).filter(
@@ -43,15 +41,15 @@ class DaemonApp:
 
         try:
             record = next(record for record in records_to_create
-                          if now_moscow >= self.planned_drive_upload(record))
+                          if datetime.now() >= self.planned_drive_upload(record))
         except StopIteration:
-            self.logger.info(f'Records not found at {now_moscow}')
+            self.logger.info(f'Records waiting to merge not found')
             session.close()
             return
 
         try:
             self.logger.info(
-                f'Started merging record {record.event_name} with id {record.id} at {now_moscow}')
+                f'Started merging record {record.event_name} with id {record.id}')
             room = session.query(Room).filter(
                 Room.name == record.room_name).first()
 
