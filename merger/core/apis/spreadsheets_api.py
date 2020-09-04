@@ -2,6 +2,7 @@ from __future__ import print_function
 
 import os.path
 import pickle
+import logging
 
 from google.auth.transport.requests import Request
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -29,8 +30,13 @@ if not creds or not creds.valid:
 
 sheets_service = build('sheets', 'v4', credentials=creds)
 
+logger = logging.getLogger('merger_logger')
+
 
 def get_data(sheet_id: str, range: str) -> list:
+    logger.info(
+        f'Getting data from datasheet with id {sheet_id} with range {range}')
+
     result = sheets_service.spreadsheets().values().get(
         spreadsheetId=sheet_id, range=range).execute()
 
