@@ -110,7 +110,8 @@ class DaemonApp:
 
             course_code = desc_json.get('поток')
             if not course_code:
-                self.logger.info(f"Course code not provided for event {record.event_name} with id {record.event_id}")
+                self.logger.info(
+                    f"Course code not provided for event {record.event_name} with id {record.event_id}")
                 return
 
             courses = get_data(self.class_sheet_id,
@@ -139,18 +140,19 @@ class DaemonApp:
         record_end_time = datetime.strptime(
             f'{record.date} {record.end_time}', '%Y-%m-%d %H:%M')
         # Record from future
-        if record_end_time.minute in [0, 30]:
-            delta = 10
-        elif 30 > record_end_time.minute > 0:
-            delta = 30 - record_end_time.minute + 10
-        else:
-            delta = 60 - record_end_time.minute + 10
+        # if record_end_time.minute in [0, 30]:
+        #     delta = 10
+        # elif 30 > record_end_time.minute > 0:
+        #     delta = 30 - record_end_time.minute + 10
+        # else:
+        #     delta = 60 - record_end_time.minute + 10
 
-        return record_end_time + timedelta(minutes=delta)
+        return record_end_time + timedelta(minutes=60)
 
     # 2 unobvious tricks. Better contact a creator
     def get_folder_id(self, date: str, room: Room) -> str:
-        self.logger.info(f'Started getting folder id from date {date} and room {room.name}')
+        self.logger.info(
+            f'Started getting folder id from date {date} and room {room.name}')
 
         folders = get_folders_by_name(date)
 
