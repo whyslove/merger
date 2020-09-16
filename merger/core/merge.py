@@ -129,10 +129,10 @@ def create_merge(cameras_file_name: str, screens_file_name: str,
                  event_name: str = None) -> tuple:
     with LOCK:
         cam_proc = subprocess.Popen(['ffmpeg', '-f', 'concat', '-safe', '0', '-i',
-                                     f'{HOME}/vids/{cameras_file_name}',
+                                     f'{HOME}/vids/{cameras_file_name}', '-y',
                                      '-c', 'copy', f'{HOME}/vids/cam_result_{round_start_time}_{round_end_time}.mp4'])
         screen_proc = subprocess.Popen(['ffmpeg', '-f', 'concat', '-safe', '0', '-i',
-                                        f'{HOME}/vids/{screens_file_name}',
+                                        f'{HOME}/vids/{screens_file_name}', '-y',
                                         '-c', 'copy',
                                         f'{HOME}/vids/screen_result_{round_start_time}_{round_end_time}.mp4'])
         cam_proc.wait()
@@ -147,21 +147,24 @@ def create_merge(cameras_file_name: str, screens_file_name: str,
                                  time.mktime(time.strptime(round_end_time, '%H:%M'))) // 60))
 
         with open(f'{HOME}/vids/{cameras_file_name}') as cams_file:
-            duration = len(cams_file.readlines()) * 30 - time_to_cut_1 - time_to_cut_2
+            duration = len(cams_file.readlines()) * 30 - \
+                time_to_cut_1 - time_to_cut_2
 
-        hours = f'{duration // 60}' if (duration // 60) > 9 else f'0{duration // 60}'
-        minutes = f'{duration % 60}' if (duration % 60) > 9 else f'0{duration % 60}'
+        hours = f'{duration // 60}' if (duration //
+                                        60) > 9 else f'0{duration // 60}'
+        minutes = f'{duration % 60}' if (
+            duration % 60) > 9 else f'0{duration % 60}'
         vid_dur = f'{hours}:{minutes}:00'
         vid_start = f'00:{time_to_cut_1}:00' if time_to_cut_1 > 9 else f'00:0{time_to_cut_1}:00'
 
         cam_cutting = subprocess.Popen(['ffmpeg', '-ss', vid_start, '-t', vid_dur, '-i',
                                         f'{HOME}/vids/cam_result_{round_start_time}_{round_end_time}.mp4',
-                                        '-c', 'copy',
+                                        '-y', '-c', 'copy',
                                         f'{HOME}/vids/cam_clipped_{start_time}_{end_time}.mp4'])
         os.system("renice -n 20 %s" % (cam_cutting.pid,))
         screen_cutting = subprocess.Popen(['ffmpeg', '-ss', vid_start, '-t', vid_dur, '-i',
                                            f'{HOME}/vids/screen_result_{round_start_time}_{round_end_time}.mp4',
-                                           '-c', 'copy',
+                                           '-y', '-c', 'copy',
                                            f'{HOME}/vids/screen_clipped_{start_time}_{end_time}.mp4'])
         os.system("renice -n 20 %s" % (screen_cutting.pid,))
         screen_cutting.wait()
@@ -189,7 +192,7 @@ def create_merge(cameras_file_name: str, screens_file_name: str,
 
         first = subprocess.Popen(['ffmpeg', '-i', f'{HOME}/vids/cam_clipped_{start_time}_{end_time}.mp4',
                                   '-i', f'{HOME}/vids/screen_clipped_{start_time}_{end_time}.mp4',
-                                  '-filter_complex', 'hstack=inputs=2',
+                                  '-filter_complex', 'hstack=inputs=2', '-y',
                                   f'{HOME}/vids/{start_time}_{end_time}_final.mp4'], shell=False)
         os.system("renice -n 20 %s" % (first.pid,))
         first.wait()
