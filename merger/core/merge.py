@@ -1,3 +1,4 @@
+import logging
 import os
 import subprocess
 import time
@@ -5,8 +6,8 @@ from datetime import datetime
 from pathlib import Path
 from threading import RLock
 
-from PIL import Image, ImageChops
 import html2text
+from PIL import Image, ImageChops
 
 from .apis.driveAPI import upload_video, download_video, get_video_by_name
 from .db.models import Record, Room
@@ -16,6 +17,8 @@ HOME = str(Path.home())
 
 h = html2text.HTML2Text()
 h.ignore_links = True
+
+logger = logging.getLogger('merger_logger')
 
 
 def get_dates_between_timestamps(start_timestamp: int, stop_timestamp: int) -> list:
@@ -71,15 +74,17 @@ def get_files(record: Record, room: Room) -> tuple:
             try:
                 screen_file_id = get_video_by_name(screen_file_name)
                 download_video(screen_file_id, screen_file_name)
-            except Exception as e:
+            except Exception:
+                logger.info(f'Screen video {screen_file_name} not found')
+
                 reserve_cam_file_id = get_video_by_name(reserve_cam_file_name)
                 download_video(reserve_cam_file_id, reserve_cam_file_name)
                 screens_file.write(
                     f"file '{HOME}/vids/{reserve_cam_file_name}'\n")
 
-        except Exception as e:
-            print("Files not found:", cam_file_name,
-                  screen_file_name, reserve_cam_file_name)
+        except Exception:
+            logger.error("Files not found:", cam_file_name,
+                         screen_file_name, reserve_cam_file_name)
 
             if (datetime.now() - date_time_end).total_seconds() // 3600 >= 1:
                 return tuple()
@@ -95,10 +100,11 @@ def get_files(record: Record, room: Room) -> tuple:
             try:
                 equal(im_example, im_cutted)
             except:
-                print("Merging with presentation")
+                logger.info(f"Merging with presentation: {screens_file_name}")
                 screens_file.write(f"file '{HOME}/vids/{screen_file_name}'\n")
             else:
-                print("No presentation provided")
+                logger.info(
+                    f"No presentation provided, merging with {reserve_cam_file_name}")
                 reserve_cam_file_id = get_video_by_name(reserve_cam_file_name)
                 download_video(reserve_cam_file_id, reserve_cam_file_name)
                 screens_file.write(
@@ -123,14 +129,17 @@ def create_merge(cameras_file_name: str, screens_file_name: str,
                  event_name: str = None) -> tuple:
     with LOCK:
         cam_proc = subprocess.Popen(['ffmpeg', '-f', 'concat', '-safe', '0', '-i',
-                                     f'{HOME}/vids/{cameras_file_name}',
+                                     f'{HOME}/vids/{cameras_file_name}', '-y',
                                      '-c', 'copy', f'{HOME}/vids/cam_result_{round_start_time}_{round_end_time}.mp4'])
         screen_proc = subprocess.Popen(['ffmpeg', '-f', 'concat', '-safe', '0', '-i',
-                                        f'{HOME}/vids/{screens_file_name}',
+                                        f'{HOME}/vids/{screens_file_name}', '-y',
                                         '-c', 'copy',
                                         f'{HOME}/vids/screen_result_{round_start_time}_{round_end_time}.mp4'])
         cam_proc.wait()
         screen_proc.wait()
+
+        logger.info(f'Finished concatenating videos cam_result_{round_start_time}_{round_end_time}.mp4 and \
+            screen_result_{round_start_time}_{round_end_time}.mp4')
 
         time_to_cut_1 = abs(int((time.mktime(time.strptime(start_time, '%H:%M')) -
                                  time.mktime(time.strptime(round_start_time, '%H:%M'))) // 60))
@@ -150,16 +159,28 @@ def create_merge(cameras_file_name: str, screens_file_name: str,
 
         cam_cutting = subprocess.Popen(['ffmpeg', '-ss', vid_start, '-t', vid_dur, '-i',
                                         f'{HOME}/vids/cam_result_{round_start_time}_{round_end_time}.mp4',
-                                        '-c', 'copy',
+                                        '-y', '-c', 'copy',
                                         f'{HOME}/vids/cam_clipped_{start_time}_{end_time}.mp4'])
         os.system("renice -n 20 %s" % (cam_cutting.pid,))
         screen_cutting = subprocess.Popen(['ffmpeg', '-ss', vid_start, '-t', vid_dur, '-i',
                                            f'{HOME}/vids/screen_result_{round_start_time}_{round_end_time}.mp4',
-                                           '-c', 'copy',
+                                           '-y', '-c', 'copy',
                                            f'{HOME}/vids/screen_clipped_{start_time}_{end_time}.mp4'])
         os.system("renice -n 20 %s" % (screen_cutting.pid,))
         screen_cutting.wait()
         cam_cutting.wait()
+
+        logger.info(f'Finished cutting videos cam_clipped_{start_time}_{end_time}.mp4 and \
+            screen_clipped_{start_time}_{end_time}.mp4')
+
+        cams_file = open(f'{HOME}/vids/{cameras_file_name}', "r")
+        screens_file = open(f'{HOME}/vids/{screens_file_name}', "r")
+
+        for line in cams_file.readlines():
+            os.remove(line.split(' ')[-1].split('\'')[1])
+        for line in screens_file.readlines():
+            os.remove(line.split(' ')[-1].split('\'')[1])
+
         os.remove(
             f'{HOME}/vids/cam_result_{round_start_time}_{round_end_time}.mp4')
         os.remove(
@@ -169,17 +190,16 @@ def create_merge(cameras_file_name: str, screens_file_name: str,
         os.remove(
             f'{HOME}/vids/{screens_file_name}')
 
-        # TODO 22.03.2020: remove origin 30m videos
-        # for cam, screen in zip(cameras, screens):
-        #     os.remove(f'{HOME}/vids/{cam}')
-        #     os.remove(f'{HOME}/vids/{screen}')
-
         first = subprocess.Popen(['ffmpeg', '-i', f'{HOME}/vids/cam_clipped_{start_time}_{end_time}.mp4',
                                   '-i', f'{HOME}/vids/screen_clipped_{start_time}_{end_time}.mp4',
-                                  '-filter_complex', 'hstack=inputs=2',
+                                  '-filter_complex', 'hstack=inputs=2', '-y',
                                   f'{HOME}/vids/{start_time}_{end_time}_final.mp4'], shell=False)
         os.system("renice -n 20 %s" % (first.pid,))
         first.wait()
+
+        logger.info(
+            f'Finished merging video {start_time}_{end_time}_final.mp4')
+
         os.remove(f'{HOME}/vids/cam_clipped_{start_time}_{end_time}.mp4')
 
         file_id = ''
@@ -191,7 +211,7 @@ def create_merge(cameras_file_name: str, screens_file_name: str,
         if event_name is not None:
             file_name = f'{event_name.replace(" ", "_")}_' + file_name
             backup_file_name = f'{event_name.replace(" ", "_")}_' + \
-                backup_file_name
+                               backup_file_name
 
         try:
             os.rename(f'{HOME}/vids/{start_time}_{end_time}_final.mp4',
@@ -203,10 +223,14 @@ def create_merge(cameras_file_name: str, screens_file_name: str,
             backup_file_id = upload_video(
                 f'{HOME}/vids/{backup_file_name}', folder_id)
 
+            logger.info(
+                f'Finished uploading videos {file_name} and {backup_file_name}')
+
             os.remove(f'{HOME}/vids/{file_name}')
             os.remove(f'{HOME}/vids/{backup_file_name}')
         except Exception as e:
-            print(e)
+            logger.error(
+                f'Error thrown while uploading videos: {file_name}, {backup_file_name}', exc_info=True)
 
         return file_id, backup_file_id
 
@@ -216,8 +240,16 @@ def equal(im1, im2):
     return ImageChops.difference(im1, im2).getbbox() is None
 
 
-def parse_description(desc):
-    desc = h.handle(
-                desc) if '\n' not in desc else desc
-    return {s.split(':')[0].strip().lower(): s.split(':', maxsplit=1)[1].strip()
-                    for s in desc.split('\n') if s}
+def parse_description(description_raw: str) -> dict:
+    logger.info(f'Started parsing description: {description_raw}')
+    if '\n' not in description_raw:
+        description_raw = h.handle(description_raw)
+
+    description_json = {}
+    for row in description_raw.split('\n'):
+        row_data = row.split(':')
+        if len(row_data) == 2:
+            key, value = row_data
+            description_json[key.strip().lower()] = value.strip()
+
+    return description_json
