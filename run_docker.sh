@@ -3,6 +3,7 @@ docker rm nvr_merger
 docker build -t nvr_merger .
 docker run -d \
  -it \
+ --restart on-failure \
  --name nvr_merger \
  --net=host \
  --env-file ../.env_nvr \
