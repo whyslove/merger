@@ -39,8 +39,12 @@ class DaemonApp:
                           if now_moscow >= self.planned_drive_upload(record))
         except StopIteration:
             print(f'Records not found at {now_moscow}')
-            session.close()
-            return
+            record = session.query(Record).filter(Record.error == True).first()
+            if not record:
+                session.close()
+                return
+            print(f'Restart record with error: {record.event_name}')
+            
 
         try:
             print(f'start {record.event_name}')
