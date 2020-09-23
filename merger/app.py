@@ -37,22 +37,23 @@ class DaemonApp:
             return
 
         records_to_create = session.query(Record).filter(Record.done == False,
-                                                         Record.processing == False).all()
+                                                         Record.processing == False,
+                                                         Record.error == False).all()
 
         try:
             record = next(record for record in records_to_create
                           if datetime.now() >= self.planned_drive_upload(record))
+            initially_error = False
         except StopIteration:
             print(f'Records not found at {now_moscow}')
-            record = session.query(Record).filter(Record.error == True).first()
+            record = session.query(Record).filter(Record.error == True, Record.done == False).first()
             if not record:
                 session.close()
                 return
             print(f'Restart record with error: {record.event_name}')
+            initially_error = True
             record.error = False
             
-
-
         try:
             self.logger.info(
                 f'Started merging record {record.event_name} with id {record.id}')
@@ -133,16 +134,18 @@ class DaemonApp:
         except:
             self.logger.error(f'Exception occured while creating attachments. \
                                     Calendar id: {calendar_id}, Record id: {record.id}', exc_info=True)
+            
+            if initially_error and record.error: # second try to create merge failed
+                record.done = True
+
         finally:  # можно будет сделать красиво defer/with
             self.logger.info(
                 f'Setting record {record.event_name} with id {record.id} as done')
             
-            if record.error and record.done: # second try to create record
-                session.delete(record)
-            else:
-                record.processing = False
+            if not record.error:
                 record.done = True
 
+            record.processing = False
             session.commit()
             session.close()
 
