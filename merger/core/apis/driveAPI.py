@@ -6,7 +6,8 @@ import pickle
 import logging
 from pathlib import Path
 
-import asyncio
+from datetime import datetime, timedelta
+
 from aiohttp import ClientSession
 from aiofile import AIOFile, Reader
 
@@ -14,6 +15,7 @@ from google.auth.transport.requests import Request
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload, MediaFileUpload
+
 home = str(Path.home())
 logger = logging.getLogger('merger_logger')
 
@@ -164,10 +166,10 @@ async def share_file(file_id: str, user_email: str) -> None:
     user_permission = {
         'type': 'user',
         'role': 'reader',
-        'emailAddress': user_email}
+        'emailAddress': user_email
+    }
 
     async with ClientSession() as session:
-        async with session.post(f'{API_URL}/files/{file_id}/permissions',
-                                headers=HEADERS, json=user_permission
-                                ssl=False) as resp:
-            pass
+        await session.post(f'{API_URL}/files/{file_id}/permissions',
+                           headers=HEADERS, json=user_permission,
+                           ssl=False)

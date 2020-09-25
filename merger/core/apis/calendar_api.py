@@ -3,6 +3,7 @@ from __future__ import print_function
 import os.path
 import pickle
 import logging
+from datetime import datetime, timedelta
 
 from aiohttp import ClientSession
 from google.auth.transport.requests import Request
@@ -19,6 +20,7 @@ creds = None
 TOKEN_PATH = '/merger/creds/tokenCalendar.pickle'
 CREDS_PATH = '/merger/creds/credentials.json'
 
+
 def creds_generate():
     global creds
     if os.path.exists(TOKEN_PATH):
@@ -34,12 +36,14 @@ def creds_generate():
         with open(TOKEN_PATH, 'wb') as token:
             pickle.dump(creds, token)
 
+
 creds_generate()
 API_URL = 'https://www.googleapis.com/calendar/v3'
 HEADERS = {
     "Content-Type": "application/json",
     "Authorization": f"Bearer {creds.token}"
 }
+
 
 def creds_check():
     if creds.expiry + timedelta(hours=3) <= datetime.now():  # refresh token
@@ -54,10 +58,10 @@ async def add_attachments(calendar_id: str, event_id: str, files_urls: list) -> 
     """
     logger.info(
         f'Adding attachments to calendar with id {calendar_id}, event with id {event_id}')
-    
+
     async with ClientSession() as session:
         async with session.get(f'{API_URL}/calendars/{calendar_id}/events/{event_id}',
-                                headers=HEADERS, ssl=False) as resp:
+                               headers=HEADERS, ssl=False) as resp:
             event = await resp.json()
 
         description = event.get('description', '')
@@ -67,9 +71,8 @@ async def add_attachments(calendar_id: str, event_id: str, files_urls: list) -> 
         }
 
         await session.patch(f'{API_URL}/calendars/{calendar_id}/events/{event_id}',
-        headers=HEADERS, ssl=False,
-        json=changes)
-        
+                            headers=HEADERS, ssl=False,
+                            json=changes)
 
     logger.info(
         f'Added attachments to calendar with id {calendar_id}, event with id {event_id}')
