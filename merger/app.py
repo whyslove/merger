@@ -45,7 +45,7 @@ class DaemonApp:
                           if datetime.now() >= self.planned_drive_upload(record))
             initially_error = False
         except StopIteration:
-            print(f'Records not found at {now_moscow}')
+            print(f'Records not found at {datetime.now()}')
             record = session.query(Record).filter(Record.error == True, Record.done == False).first()
             if not record:
                 session.close()
