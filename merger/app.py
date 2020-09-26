@@ -15,7 +15,7 @@ from core.merge import get_files, create_merge, parse_description
 
 
 class DaemonApp:
-    class_sheet_id = '1_YP63y3URvKCMXjHJC7neOJRk1Uyj6DEJTL0jkLYOEI'
+    class_sheet_id = '1nyQ0M_3RozJ-MpTuji7eIbsxR7pk1wNPzVgCaiNMryU'
     class_sheet_range = 'A2:B1000'
     logger = logging.getLogger('merger_logger')
 
@@ -46,14 +46,15 @@ class DaemonApp:
             initially_error = False
         except StopIteration:
             print(f'Records not found at {now_moscow}')
-            record = session.query(Record).filter(Record.error == True, Record.done == False).first()
+            record = session.query(Record).filter(
+                Record.error == True, Record.done == False).first()
             if not record:
                 session.close()
                 return
             print(f'Restart record with error: {record.event_name}')
             initially_error = True
             record.error = False
-            
+
         try:
             self.logger.info(
                 f'Started merging record {record.event_name} with id {record.id}')
@@ -134,14 +135,14 @@ class DaemonApp:
         except:
             self.logger.error(f'Exception occured while creating attachments. \
                                     Calendar id: {calendar_id}, Record id: {record.id}', exc_info=True)
-            
-            if initially_error and record.error: # second try to create merge failed
+
+            if initially_error and record.error:  # second try to create merge failed
                 record.done = True
 
         finally:  # можно будет сделать красиво defer/with
             self.logger.info(
                 f'Setting record {record.event_name} with id {record.id} as done')
-            
+
             if not record.error:
                 record.done = True
 
