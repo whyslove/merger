@@ -15,7 +15,7 @@ from core.merge import get_files, create_merge, parse_description
 
 
 class DaemonApp:
-    class_sheet_id = '1_YP63y3URvKCMXjHJC7neOJRk1Uyj6DEJTL0jkLYOEI'
+    class_sheet_id = '1nyQ0M_3RozJ-MpTuji7eIbsxR7pk1wNPzVgCaiNMryU'
     class_sheet_range = 'A2:B1000'
     logger = logging.getLogger('merger_logger')
 
@@ -46,7 +46,8 @@ class DaemonApp:
             initially_error = False
         except StopIteration:
             print(f'Records not found at {datetime.now()}')
-            record = session.query(Record).filter(Record.error == True, Record.done == False).first()
+            record = session.query(Record).filter(
+                Record.error == True, Record.done == False).first()
             if not record:
                 session.close()
                 return
