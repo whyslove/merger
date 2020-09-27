@@ -9,5 +9,6 @@ COPY ./requirements.txt /
 
 RUN pip3 install -r requirements.txt
 RUN mkdir /root/vids
+RUN mkdir /var/log/merger
 
 CMD ["python", "/merger/app.py"]

@@ -1,17 +1,22 @@
 import logging
+import os
 import time
 from datetime import datetime, timedelta
+from pathlib import Path
 
 import requests
 import schedule
 
 from core.apis.calendar_api import add_attachments
 from core.apis.classroom_api import create_announcement
-from core.apis.driveAPI import get_folders_by_name, share_file
+from core.apis.driveAPI import get_folders_by_name, share_file, upload_video
 from core.apis.spreadsheets_api import get_data
 from core.db.models import Session, Record, Room
 from core.exceptions.exceptions import FilesNotFoundException
-from core.merge import get_files, create_merge, parse_description
+from core.merge import parse_description
+from core.merge2 import Merge
+
+HOME = str(Path.home())
 
 
 class DaemonApp:
@@ -68,12 +73,13 @@ class DaemonApp:
             folder_id = self.get_folder_id(record.date, room)
 
             try:
-                files = get_files(record, room)
-                if not files:
-                    raise
-            except:
+                merge = Merge(record, room)
+
+                file_name, backup_file_name = merge.create_merge()
+            except RuntimeError:
                 self.logger.error(
-                    f'Source videos not found for record {record.event_name} with id {record.id}')
+                    f'Source videos not found for record {record.event_name} with id {record.id} '
+                    f'or some error occured while merging')
 
                 self.send_zulip_msg(record.user_email,
                                     f'Некоторые исходные видео для вашей склейки "{record.event_name}" в NVR не были найдены на Google-диске, '
@@ -83,11 +89,7 @@ class DaemonApp:
                 raise FilesNotFoundException(
                     "Некоторые исходные видео не были найдены на Google-диске.")
 
-            cameras_file_name, screens_file_name, rounded_start_time, rounded_end_time = files
-            file_id, backup_file_id = create_merge(cameras_file_name, screens_file_name,
-                                                   rounded_start_time, rounded_end_time,
-                                                   record.start_time, record.end_time, folder_id,
-                                                   record.event_name)
+            file_id, backup_file_id = self.upload(file_name, backup_file_name, folder_id)
 
             record.drive_file_url = f'https://drive.google.com/file/d/{file_id}/preview'
             session.commit()
@@ -133,8 +135,8 @@ class DaemonApp:
                 course_id, record.event_name, file_ids, file_urls)
 
         except:
-            self.logger.error(f'Exception occured while creating attachments. \
-                                    Calendar id: {calendar_id}, Record id: {record.id}', exc_info=True)
+            self.logger.exception(f'Exception occured while creating attachments. \
+                                    Calendar id: {calendar_id}, Record id: {record.id}')
 
             if initially_error and record.error:  # second try to create merge failed
                 record.done = True
@@ -196,6 +198,22 @@ class DaemonApp:
 
         self.logger.info(f'Request to Zulip bot returned code {res.status_code}. \
             Email: {email}, Message: {msg}')
+
+    def upload(self, file_name: str, backup_file_name: str, folder_id: str) -> tuple:
+        file_id = upload_video(f'{HOME}/vids/{file_name}', folder_id)
+        backup_file_id = upload_video(
+            f'{HOME}/vids/{backup_file_name}', folder_id)
+
+        self.logger.info(
+            f'Finished uploading videos {file_name} and {backup_file_name}')
+
+        try:
+            os.remove(f'{HOME}/vids/{file_name}')
+            os.remove(f'{HOME}/vids/{backup_file_name}')
+        except OSError:
+            self.logger.exception("Error while deleting final videos")
+
+        return file_id, backup_file_id
 
     def run(self):
         while True:

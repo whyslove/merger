@@ -8,4 +8,5 @@ docker run -d \
  --net=host \
  --env-file ../.env_nvr \
  -v $HOME/creds:/merger/creds \
+ -v /var/log/merger:/var/log/merger \
  nvr_merger
