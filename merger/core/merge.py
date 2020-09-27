@@ -39,8 +39,8 @@ class Merge:
                 self.screen_stream_check(
                     screen_file_name, reserve_cam_file_name)
 
-        self.rounded_start_time = cam_file_names[0].split("_")[1]
-        self.rounded_end_time = cam_file_names[-1].split("_")[1] if len(cam_file_names) > 1 \
+        self.round_start_time = cam_file_names[0].split("_")[1]
+        self.round_end_time = cam_file_names[-1].split("_")[1] if len(cam_file_names) > 1 \
             else self.end_time
 
     def create_merge(self) -> tuple:
