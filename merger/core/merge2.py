@@ -246,15 +246,19 @@ class Merge:
                 f'{HOME}/vids/cam_result_{self.round_start_time}_{self.round_end_time}.mp4')
             os.remove(
                 f'{HOME}/vids/screen_result_{self.round_start_time}_{self.round_end_time}.mp4')
-            os.remove(
-                f'{HOME}/vids/{self.cameras_file_name}')
-            os.remove(
-                f'{HOME}/vids/{self.screens_file_name}')
         except OSError:
             logger.exception("Error occured while deleting intermediate videos")
         finally:
             cams_file.close()
             screens_file.close()
+
+        try:
+            os.remove(
+                f'{HOME}/vids/{self.cameras_file_name}')
+            os.remove(
+                f'{HOME}/vids/{self.screens_file_name}')
+        except OSError:
+            logger.exception("Error occured while deleting text files")
 
     def hstack_process(self):
         log_file = open(f"/var/log/merger/hstack_log.txt", "a")
