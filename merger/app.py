@@ -91,8 +91,8 @@ class DaemonApp:
 
             Thread(target=asyncio.run, args=(self.apis_stuff(
                 record, room, file_name, backup_file_name), )).start()
-        except:
-            self.logger.exception(f'Exception occurred')
+        except Exception as err:
+            self.logger.error(f'Exception occurred: {err}')
 
             if initially_error and record.error:  # second try to create merge failed
                 record.done = True
