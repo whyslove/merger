@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from threading import Thread
 import asyncio
+from copy import deepcopy
 
 from aiohttp import ClientSession
 import schedule
@@ -90,7 +91,8 @@ class DaemonApp:
                     "Некоторые исходные видео не были найдены на Google-диске.")
 
             Thread(target=asyncio.run, args=(self.apis_stuff(
-                record, room, file_name, backup_file_name), )).start()
+                deepcopy(record), deepcopy(room), file_name, backup_file_name), )).start()
+
         except Exception as err:
             self.logger.error(f'Exception occurred: {err}')
 
