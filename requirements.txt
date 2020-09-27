@@ -30,3 +30,4 @@ Werkzeug==0.16.0
 html2text
 aiohttp
 asyncpg
+aiofile
