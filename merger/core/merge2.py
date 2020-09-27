@@ -135,14 +135,14 @@ class Merge:
             try:
                 screen_file_id = get_video_by_name(screen_file_name)
                 download_video(screen_file_id, screen_file_name)
-            except Exception:
+            except:
                 logger.info(f'Screen video {screen_file_name} not found')
 
                 reserve_cam_file_id = get_video_by_name(reserve_cam_file_name)
                 download_video(reserve_cam_file_id, reserve_cam_file_name)
                 screens_file.write(
                     f"file '{HOME}/vids/{reserve_cam_file_name}'\n")
-        except Exception:
+        except:
             logger.error("Files not found:", cam_file_name,
                          screen_file_name, reserve_cam_file_name)
 
