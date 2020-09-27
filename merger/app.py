@@ -137,7 +137,7 @@ class DaemonApp:
 
     async def apis_stuff(self, record, room, file_name, backup_file_name):
         folder_id = await self.get_folder_id(record.date, room)
-        file_id, backup_file_id = await upload(file_name, backup_file_name, folder_id)
+        file_id, backup_file_id = await self.upload(file_name, backup_file_name, folder_id)
 
         await update_record_driveurl(record, f'https://drive.google.com/file/d/{file_id}/preview')
 
