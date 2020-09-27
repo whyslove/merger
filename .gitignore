@@ -7,7 +7,6 @@ node_modules/
 logs/
 *.iml
 .idea
-creds/
 
 
 # Byte-compiled / optimized / DLL files
