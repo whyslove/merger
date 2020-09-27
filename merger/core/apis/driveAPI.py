@@ -118,8 +118,13 @@ async def upload_video(file_path: str, folder_id: str) -> None:
                                        headers={"Content-Length": str(chunk_size),
                                                 "Content-Range": f"{chunk_range}/{file_size}"}) as resp:
                     chunk_range = resp.headers.get('Range')
-                    resp_json = await resp.json()
-                    file_id = resp_json['id']
+
+                    try:
+                        resp_json = await resp.json()
+                        file_id = resp_json['id']
+                    except:
+                        pass
+
                     if chunk_range is None:
                         break
 
