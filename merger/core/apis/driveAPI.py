@@ -73,6 +73,25 @@ def download_video(video_id: str, video_name: str) -> None:
         status, done = downloader.next_chunk()
 
 
+def get_video_by_name(name: str) -> str:
+    logger.info(f'Getting the id of video with name {name}')
+
+    page_token = None
+
+    while True:
+        response = drive_service.files().list(q=f"mimeType='video/mp4'"
+                                                f"and name='{name}'",
+                                                spaces='drive',
+                                                fields='nextPageToken, files(name, id)',
+                                                pageToken=page_token).execute()
+        page_token = response.get('nextPageToken', None)
+
+        if page_token is None:
+            break
+
+    return response['files'][0]['id']
+
+
 async def upload_video(file_path: str, folder_id: str) -> None:
     meta_data = {
         "name": file_path.split('/')[-1],
@@ -112,29 +131,6 @@ async def upload_video(file_path: str, folder_id: str) -> None:
         f'Uploaded {file_path}')
 
     return file_id
-
-
-async def get_video_by_name(name: str) -> str:
-    logger.info(f'Getting the id of video with name {name}')
-
-    params = dict(
-        fields='nextPageToken, files(name, id)',
-        q=f"mimeType='video/mp4'and name='{name}'",
-        spaces='drive'
-    )
-    files = []
-    page_token = ''
-
-    async with ClientSession() as session:
-        while page_token != False:
-            async with session.get(f'{API_URL}/files?pageToken={page_token}',
-                                   headers=HEADERS, params=params,
-                                   ssl=False) as resp:
-                resp_json = await resp.json()
-                files.extend(resp_json.get('files', []))
-                page_token = resp_json.get('nextPageToken', False)
-
-    return files[0].get('id')
 
 
 async def get_folders_by_name(name):
