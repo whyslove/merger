@@ -68,12 +68,8 @@ class Merge:
         logger.info(
             f'Finished merging video {self.start_time}_{self.end_time}_final.mp4')
 
-        try:
-            self.remove_file(
-                f'{HOME}/vids/cam_clipped_{self.start_time}_{self.end_time}.mp4')
-        except OSError:
-            logger.exception(
-                f"Error while deleting file cam_clipped_{self.start_time}_{self.end_time}.mp4")
+        self.remove_file(
+            f'{HOME}/vids/cam_clipped_{self.start_time}_{self.end_time}.mp4')
 
         file_name = f'{self.start_time}_{self.end_time}.mp4'
         backup_file_name = f'{self.start_time}_{self.end_time}_backup.mp4'
@@ -234,30 +230,23 @@ class Merge:
         cams_file = open(f'{HOME}/vids/{self.cameras_file_name}', "r")
         screens_file = open(f'{HOME}/vids/{self.screens_file_name}', "r")
 
-        try:
-            for line in cams_file.readlines():
-                self.remove_file(line.split(' ')[-1].split('\'')[1])
-            for line in screens_file.readlines():
-                self.remove_file(line.split(' ')[-1].split('\'')[1])
+        for line in cams_file.readlines():
+            self.remove_file(line.split(' ')[-1].split('\'')[1])
+        for line in screens_file.readlines():
+            self.remove_file(line.split(' ')[-1].split('\'')[1])
 
-            self.remove_file(
-                f'{HOME}/vids/cam_result_{self.round_start_time}_{self.round_end_time}.mp4')
-            self.remove_file(
-                f'{HOME}/vids/screen_result_{self.round_start_time}_{self.round_end_time}.mp4')
-        except OSError:
-            logger.exception(
-                "Error occured while deleting intermediate videos")
-        finally:
-            cams_file.close()
-            screens_file.close()
+        self.remove_file(
+            f'{HOME}/vids/cam_result_{self.round_start_time}_{self.round_end_time}.mp4')
+        self.remove_file(
+            f'{HOME}/vids/screen_result_{self.round_start_time}_{self.round_end_time}.mp4')
 
-        try:
-            self.remove_file(
-                f'{HOME}/vids/{self.cameras_file_name}')
-            self.remove_file(
-                f'{HOME}/vids/{self.screens_file_name}')
-        except OSError:
-            logger.exception("Error occured while deleting text files")
+        cams_file.close()
+        screens_file.close()
+
+        self.remove_file(
+            f'{HOME}/vids/{self.cameras_file_name}')
+        self.remove_file(
+            f'{HOME}/vids/{self.screens_file_name}')
 
     def hstack_process(self):
         log_file = open(f"/var/log/merger/hstack_log.txt", "a")

@@ -105,10 +105,10 @@ class DaemonApp:
                 record.done = True
 
         finally:  # можно будет сделать красиво defer/with
-            self.logger.info(
-                f'Setting record {record.event_name} with id {record.id} as done')
 
             if not record.error:
+                self.logger.info(
+                    f'Setting record {record.event_name} with id {record.id} as done')
                 record.done = True
 
             record.processing = False
