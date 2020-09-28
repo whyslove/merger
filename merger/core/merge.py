@@ -69,7 +69,7 @@ class Merge:
             f'Finished merging video {self.start_time}_{self.end_time}_final.mp4')
 
         try:
-            os.remove(
+            self.remove_file(
                 f'{HOME}/vids/cam_clipped_{self.start_time}_{self.end_time}.mp4')
         except OSError:
             logger.exception(
@@ -236,13 +236,13 @@ class Merge:
 
         try:
             for line in cams_file.readlines():
-                os.remove(line.split(' ')[-1].split('\'')[1])
+                self.remove_file(line.split(' ')[-1].split('\'')[1])
             for line in screens_file.readlines():
-                os.remove(line.split(' ')[-1].split('\'')[1])
+                self.remove_file(line.split(' ')[-1].split('\'')[1])
 
-            os.remove(
+            self.remove_file(
                 f'{HOME}/vids/cam_result_{self.round_start_time}_{self.round_end_time}.mp4')
-            os.remove(
+            self.remove_file(
                 f'{HOME}/vids/screen_result_{self.round_start_time}_{self.round_end_time}.mp4')
         except OSError:
             logger.exception(
@@ -252,9 +252,9 @@ class Merge:
             screens_file.close()
 
         try:
-            os.remove(
+            self.remove_file(
                 f'{HOME}/vids/{self.cameras_file_name}')
-            os.remove(
+            self.remove_file(
                 f'{HOME}/vids/{self.screens_file_name}')
         except OSError:
             logger.exception("Error occured while deleting text files")
@@ -302,3 +302,13 @@ class Merge:
                 description_json[key.strip().lower()] = value.strip()
 
         return description_json
+
+    @staticmethod
+    def remove_file(filename: str) -> None:
+        try:
+            os.remove(filename)
+        except FileNotFoundError:
+            logger.warning(f'Failed to remove file {filename}')
+        except:
+            logger.error(
+                f'Failed to remove file {filename}', exc_info=True)

@@ -224,19 +224,10 @@ class DaemonApp:
         self.logger.info(
             f'Finished uploading videos {file_name} and {backup_file_name}')
 
-        self.remove_file(f'{HOME}/vids/{file_name}')
-        self.remove_file(f'{HOME}/vids/{backup_file_name}')
+        Merge.remove_file(f'{HOME}/vids/{file_name}')
+        Merge.remove_file(f'{HOME}/vids/{backup_file_name}')
 
         return file_id, backup_file_id
-
-    def remove_file(self, filename: str) -> None:
-        try:
-            os.remove(filename)
-        except FileNotFoundError:
-            self.logger.warning(f'Failed to remove file {filename}')
-        except:
-            self.logger.error(
-                f'Failed to remove file {filename}', exc_info=True)
 
     def run(self):
         while True:
