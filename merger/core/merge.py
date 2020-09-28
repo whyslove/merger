@@ -2,7 +2,7 @@ import logging
 import os
 import subprocess
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 import html2text
@@ -40,8 +40,13 @@ class Merge:
                     screen_file_name, reserve_cam_file_name)
 
         self.round_start_time = cam_file_names[0].split("_")[1]
-        self.round_end_time = cam_file_names[-1].split("_")[1] if len(cam_file_names) > 1 \
-            else self.end_time
+
+        if len(cam_file_names) > 1:
+            temp_time = datetime.strptime(cam_file_names[-1].split("_")[1], "%H:%M") + timedelta(hours=0, minutes=30)
+
+            self.round_end_time = temp_time.strftime("%H:%M")
+        else:
+            self.round_end_time = self.end_time
 
     def create_merge(self) -> tuple:
         self.concat_process(self.cameras_file_name, "cam")
@@ -77,7 +82,7 @@ class Merge:
         if self.event_name is not None:
             file_name = f'{self.event_name.replace(" ", "_")}_' + file_name
             backup_file_name = f'{self.event_name.replace(" ", "_")}_' + \
-                backup_file_name
+                               backup_file_name
 
         try:
             os.rename(f'{HOME}/vids/{self.start_time}_{self.end_time}_final.mp4',
@@ -118,8 +123,8 @@ class Merge:
     def screen_videos_check(self, cam_file_name, screen_file_name, reserve_cam_file_name, date_time_end) -> str:
         reserve_cam_file_id = ""
 
-        cams_file = open(f'{HOME}/vids/{self.cameras_file_name}', "w")
-        screens_file = open(f'{HOME}/vids/{self.screens_file_name}', "w")
+        cams_file = open(f'{HOME}/vids/{self.cameras_file_name}', "a")
+        screens_file = open(f'{HOME}/vids/{self.screens_file_name}', "a")
 
         try:
             cam_file_id = get_video_by_name(cam_file_name)
@@ -202,19 +207,19 @@ class Merge:
 
         with open(f'{HOME}/vids/{self.cameras_file_name}') as cams_file:
             duration = len(cams_file.readlines()) * 30 - \
-                time_to_cut_1 - time_to_cut_2
+                       time_to_cut_1 - time_to_cut_2
 
         hours = f'{duration // 60}' if (duration //
                                         60) > 9 else f'0{duration // 60}'
         minutes = f'{duration % 60}' if (
-            duration % 60) > 9 else f'0{duration % 60}'
+                                                duration % 60) > 9 else f'0{duration % 60}'
         vid_dur = f'{hours}:{minutes}:00'
         vid_start = f'00:{time_to_cut_1}:00' if time_to_cut_1 > 9 else f'00:0{time_to_cut_1}:00'
 
         logger.info(f"For {self.cameras_file_name}: "
-                    f"start_time = {self.start_time}, round_start_time = {self.round_start_time},\n"
-                    f"end_time = {self.end_time}, round_end_time = {self.round_end_time},\n"
-                    f"time_to_cut_1 = {time_to_cut_1}, time_to_cut_2 = {time_to_cut_2},\n"
+                    f"start_time = {self.start_time}, round_start_time = {self.round_start_time}, "
+                    f"end_time = {self.end_time}, round_end_time = {self.round_end_time}, "
+                    f"time_to_cut_1 = {time_to_cut_1}, time_to_cut_2 = {time_to_cut_2}, "
                     f"duration = {duration}, vid_start = {vid_start}, vid_dur = {vid_dur}")
 
         return vid_start, vid_dur
