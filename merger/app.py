@@ -3,18 +3,21 @@ import os
 import time
 from datetime import datetime, timedelta
 from pathlib import Path
+from threading import Thread
+import asyncio
+from copy import deepcopy
 
-import requests
+from aiohttp import ClientSession
 import schedule
 
-from core.apis.calendar_api import add_attachments
-from core.apis.classroom_api import create_announcement
-from core.apis.driveAPI import get_folders_by_name, share_file, upload_video
-from core.apis.spreadsheets_api import get_data
+from core.apis.calendar_api import add_attachments, calendar_creds_check
+from core.apis.classroom_api import create_announcement, classroom_creds_check
+from core.apis.driveAPI import get_folders_by_name, share_file, upload_video, drive_creds_check
+from core.apis.spreadsheets_api import get_data, sheets_creds_check
 from core.db.models import Session, Record, Room
+from core.db.utils import update_record_driveurl
 from core.exceptions.exceptions import FilesNotFoundException
-from core.merge import parse_description
-from core.merge2 import Merge
+from core.merge import Merge
 
 HOME = str(Path.home())
 
@@ -30,6 +33,11 @@ class DaemonApp:
 
     def invoke_merge_events(self):
         self.logger.info(f'Starting merge check')
+
+        calendar_creds_check()
+        classroom_creds_check()
+        drive_creds_check()
+        sheets_creds_check()
 
         session = Session()
         process_record = session.query(Record).filter(
@@ -69,83 +77,38 @@ class DaemonApp:
             record.processing = True
             session.commit()
 
-            calendar_id = room.calendar if record.event_id else None
-            folder_id = self.get_folder_id(record.date, room)
-
             try:
                 merge = Merge(record, room)
-
                 file_name, backup_file_name = merge.create_merge()
             except RuntimeError:
                 self.logger.error(
                     f'Source videos not found for record {record.event_name} with id {record.id} '
                     f'or some error occured while merging')
 
-                self.send_zulip_msg(record.user_email,
-                                    f'Некоторые исходные видео для вашей склейки "{record.event_name}" в NVR не были найдены на Google-диске, '
-                                    'и при подготовке склейки произошла ошибка')
+                asyncio.run(
+                    self.send_zulip_msg(record.user_email,
+                                        f'Некоторые исходные видео для вашей склейки "{record.event_name}" в NVR не были найдены на Google-диске, '
+                                        'и при подготовке склейки произошла ошибка')
+                )
 
                 record.error = True
                 raise FilesNotFoundException(
                     "Некоторые исходные видео не были найдены на Google-диске.")
 
-            file_id, backup_file_id = self.upload(file_name, backup_file_name, folder_id)
+            Thread(target=asyncio.run, args=(self.apis_stuff(
+                deepcopy(record), deepcopy(room), file_name, backup_file_name), )).start()
 
-            record.drive_file_url = f'https://drive.google.com/file/d/{file_id}/preview'
-            session.commit()
-
-            self.logger.info(
-                'Merge was successfully processed, starting files sharing')
-            share_file(file_id, record.user_email)
-            share_file(backup_file_id, record.user_email)
-            self.send_zulip_msg(record.user_email,
-                                f'Ваша склейка в NVR готова: '
-                                f'https://drive.google.com/a/auditory.ru/file/d/{file_id}/view?usp=drive_web')
-
-            if not calendar_id:
-                return
-
-            self.logger.info(
-                f'Merge has calendar id {calendar_id}, starting creating attachments')
-
-            file_ids = [file_id, backup_file_id]
-            file_urls = [
-                f"https://drive.google.com/a/auditory.ru/file/d/{file_id}/view?usp=drive_web"
-                for file_id in file_ids]
-
-            description = add_attachments(calendar_id,
-                                          record.event_id,
-                                          file_urls)
-            desc_json = parse_description(description)
-
-            course_code = desc_json.get('поток')
-            if not course_code:
-                self.logger.info(
-                    f"Course code not provided for event {record.event_name} with id {record.event_id}")
-                return
-
-            courses = get_data(self.class_sheet_id,
-                               self.class_sheet_range)
-
-            course_id = self.get_course_by_code(course_code, courses)
-            if not course_id:
-                return
-
-            create_announcement(
-                course_id, record.event_name, file_ids, file_urls)
-
-        except:
-            self.logger.exception(f'Exception occured while creating attachments. \
-                                    Calendar id: {calendar_id}, Record id: {record.id}')
+        except Exception as err:
+            self.logger.error(f'Exception occurred: {err}')
 
             if initially_error and record.error:  # second try to create merge failed
                 record.done = True
 
         finally:  # можно будет сделать красиво defer/with
-            self.logger.info(
-                f'Setting record {record.event_name} with id {record.id} as done')
 
             if not record.error:
+                self.logger.info(
+                    f'Setting record {record.event_name} with id {record.id} as done')
                 record.done = True
 
             record.processing = False
@@ -165,15 +128,77 @@ class DaemonApp:
 
         return record_end_time + timedelta(minutes=delta)
 
-    # 2 unobvious tricks. Better contact a creator
-    def get_folder_id(self, date: str, room: Room) -> str:
+    # change to own NVR notifier
+    async def send_zulip_msg(self, email, msg):
+        async with ClientSession() as session:
+            res = await session.post('http://172.18.130.41:8080/api/send-msg', ssl=False,
+                                     json={
+                                         "email": email,
+                                         "msg": msg
+                                     })
+
+        self.logger.info(f'Request to Zulip bot returned code {res.status}. \
+            Email: {email}, Message: {msg}')
+
+    async def apis_stuff(self, record, room, file_name, backup_file_name):
+        folder_id = await self.get_folder_id(record.date, room)
+        file_id, backup_file_id = await self.upload(file_name, backup_file_name, folder_id)
+
+        await update_record_driveurl(record, f'https://drive.google.com/file/d/{file_id}/preview')
+
+        self.logger.info(
+            'Merge was successfully processed, starting files sharing')
+
+        await asyncio.gather(share_file(file_id, record.user_email),
+                             share_file(backup_file_id, record.user_email))
+        await self.send_zulip_msg(record.user_email,
+                                  f'Ваша склейка в NVR готова: '
+                                  f'https://drive.google.com/a/auditory.ru/file/d/{file_id}/view?usp=drive_web')
+
+        calendar_id = room.calendar if record.event_id else None
+        if not calendar_id:
+            return
+
+        self.logger.info(
+            f'Merge has calendar id {calendar_id}, starting creating attachments')
+
+        file_ids = [file_id, backup_file_id]
+        file_urls = [
+            f"https://drive.google.com/a/auditory.ru/file/d/{file_id}/view?usp=drive_web"
+            for file_id in file_ids]
+
+        description = await add_attachments(calendar_id,
+                                            record.event_id,
+                                            file_urls)
+        desc_json = Merge.parse_description(description)
+
+        course_code = desc_json.get('поток')
+        if not course_code:
+            self.logger.info(
+                f"Course code not provided for event {record.event_name} with id {record.event_id}")
+            return
+
+        courses = await get_data(self.class_sheet_id,
+                                 self.class_sheet_range)
+
+        course_id = self.get_course_by_code(course_code, courses)
+        if not course_id:
+            return
+
+        await create_announcement(
+            course_id, record.event_name, file_ids, file_urls)
+
+    async def get_folder_id(self, date: str, room: Room) -> str:
+
         self.logger.info(
             f'Started getting folder id from date {date} and room {room.name}')
 
-        folders = get_folders_by_name(date)
+        folders = await get_folders_by_name(date)
 
-        for folder_id, folder_parent_id in folders.items():
-            if folder_parent_id == room.drive.split('/')[-1]:
+        # 2 unobvious tricks. Better contact a creator
+        room_drive_id = room.drive.split('/')[-1]
+        for folder_id, folder_parent_ids in folders.items():
+            if room_drive_id in folder_parent_ids:
                 break
         else:
             folder_id = room.drive.split('/')[-1]
@@ -189,29 +214,18 @@ class DaemonApp:
             self.logger.error(f'Course with code {course_code} not found')
             return None
 
-    # change to own NVR notifier
-    def send_zulip_msg(self, email, msg):
-        res = requests.post('http://172.18.130.41:8080/api/send-msg', json={
-            "email": email,
-            "msg": msg
-        })
-
-        self.logger.info(f'Request to Zulip bot returned code {res.status_code}. \
-            Email: {email}, Message: {msg}')
-
-    def upload(self, file_name: str, backup_file_name: str, folder_id: str) -> tuple:
-        file_id = upload_video(f'{HOME}/vids/{file_name}', folder_id)
-        backup_file_id = upload_video(
-            f'{HOME}/vids/{backup_file_name}', folder_id)
+    async def upload(self, file_name: str, backup_file_name: str, folder_id: str) -> tuple:
+        file_id, backup_file_id = await asyncio.gather(
+            upload_video(f'{HOME}/vids/{file_name}', folder_id),
+            upload_video(
+                f'{HOME}/vids/{backup_file_name}', folder_id)
+        )
 
         self.logger.info(
             f'Finished uploading videos {file_name} and {backup_file_name}')
 
-        try:
-            os.remove(f'{HOME}/vids/{file_name}')
-            os.remove(f'{HOME}/vids/{backup_file_name}')
-        except OSError:
-            self.logger.exception("Error while deleting final videos")
+        Merge.remove_file(f'{HOME}/vids/{file_name}')
+        Merge.remove_file(f'{HOME}/vids/{backup_file_name}')
 
         return file_id, backup_file_id
 
