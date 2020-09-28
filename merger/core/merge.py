@@ -48,9 +48,6 @@ class Merge:
         else:
             self.round_end_time = self.end_time
 
-        self.round_end_time = cam_file_names[-1].split("_")[1] if len(cam_file_names) > 1 \
-            else self.end_time
-
     def create_merge(self) -> tuple:
         self.concat_process(self.cameras_file_name, "cam")
         self.concat_process(self.screens_file_name, "screen")
