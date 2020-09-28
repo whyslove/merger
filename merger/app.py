@@ -10,10 +10,10 @@ from copy import deepcopy
 from aiohttp import ClientSession
 import schedule
 
-from core.apis.calendar_api import add_attachments
-from core.apis.classroom_api import create_announcement
-from core.apis.driveAPI import get_folders_by_name, share_file, upload_video
-from core.apis.spreadsheets_api import get_data
+from core.apis.calendar_api import add_attachments, calendar_creds_check
+from core.apis.classroom_api import create_announcement, classroom_creds_check
+from core.apis.driveAPI import get_folders_by_name, share_file, upload_video, drive_creds_check
+from core.apis.spreadsheets_api import get_data, sheets_creds_check
 from core.db.models import Session, Record, Room
 from core.db.utils import update_record_driveurl
 from core.exceptions.exceptions import FilesNotFoundException
@@ -33,6 +33,11 @@ class DaemonApp:
 
     def invoke_merge_events(self):
         self.logger.info(f'Starting merge check')
+
+        calendar_creds_check()
+        classroom_creds_check()
+        drive_creds_check()
+        sheets_creds_check()
 
         session = Session()
         process_record = session.query(Record).filter(

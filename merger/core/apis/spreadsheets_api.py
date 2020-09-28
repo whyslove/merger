@@ -43,7 +43,7 @@ HEADERS = {
 }
 
 
-def creds_check():
+def sheets_creds_check():
     if creds.expiry + timedelta(hours=3) <= datetime.now():  # refresh token
         logger.info("Recreating google creds")
         creds_generate()
