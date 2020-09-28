@@ -34,11 +34,6 @@ class DaemonApp:
     def invoke_merge_events(self):
         self.logger.info(f'Starting merge check')
 
-        calendar_creds_check()
-        classroom_creds_check()
-        drive_creds_check()
-        sheets_creds_check()
-
         session = Session()
         process_record = session.query(Record).filter(
             Record.processing == True).first()
@@ -141,6 +136,11 @@ class DaemonApp:
             Email: {email}, Message: {msg}')
 
     async def apis_stuff(self, record, room, file_name, backup_file_name):
+        calendar_creds_check()
+        classroom_creds_check()
+        drive_creds_check()
+        sheets_creds_check()
+
         folder_id = await self.get_folder_id(record.date, room)
         file_id, backup_file_id = await self.upload(file_name, backup_file_name, folder_id)
 
