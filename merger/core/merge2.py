@@ -207,15 +207,19 @@ class Merge:
                                  time.mktime(time.strptime(self.round_end_time, '%H:%M'))) // 60))
 
         with open(f'{HOME}/vids/{self.cameras_file_name}') as cams_file:
-            duration = len(cams_file.readlines()) * 30 - \
-                       time_to_cut_1 - time_to_cut_2
+            duration = len(cams_file.readlines()) * 30 - time_to_cut_1 - time_to_cut_2
 
-        hours = f'{duration // 60}' if (duration //
-                                        60) > 9 else f'0{duration // 60}'
-        minutes = f'{duration % 60}' if (
-                                                duration % 60) > 9 else f'0{duration % 60}'
+        hours = f'{duration // 60}' if (duration // 60) > 9 else f'0{duration // 60}'
+        minutes = f'{duration % 60}' if (duration % 60) > 9 else f'0{duration % 60}'
         vid_dur = f'{hours}:{minutes}:00'
         vid_start = f'00:{time_to_cut_1}:00' if time_to_cut_1 > 9 else f'00:0{time_to_cut_1}:00'
+
+        logger.info(f"For {self.cameras_file_name}: "
+                    f"start_time = {self.start_time}, round_start_time = {self.round_start_time},\n"
+                    f"end_time = {self.end_time}, round_end_time = {self.round_end_time},\n"
+                    f"time_to_cut_1 = {time_to_cut_1}, time_to_cut_2 = {time_to_cut_2},\n"
+                    f"duration = {duration}, vid_start = {vid_start}, vid_dur = {vid_dur}")
+
         return vid_start, vid_dur
 
     def cutting_process(self, source_type: str, vid_start: str, vid_dur: str) -> None:
