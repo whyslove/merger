@@ -131,6 +131,9 @@ class Merge:
             download_video(cam_file_id, cam_file_name)
             cams_file.write(f"file '{HOME}/vids/{cam_file_name}'\n")
 
+            # TODO убрать
+            logger.info(f"file '{HOME}/vids/{cam_file_name}'")
+
             try:
                 screen_file_id = get_video_by_name(screen_file_name)
                 download_video(screen_file_id, screen_file_name)
