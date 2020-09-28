@@ -60,8 +60,9 @@ async def add_attachments(calendar_id: str, event_id: str, files_urls: list) -> 
         f'Adding attachments to calendar with id {calendar_id}, event with id {event_id}')
 
     async with ClientSession() as session:
-        async with session.get(f'{API_URL}/calendars/{calendar_id}/events/{event_id}',
-                               headers=HEADERS, ssl=False) as resp:
+        resp = await session.get(f'{API_URL}/calendars/{calendar_id}/events/{event_id}',
+                                 headers=HEADERS, ssl=False)
+        async with resp:
             event = await resp.json()
 
         description = event.get('description', '')
@@ -70,9 +71,11 @@ async def add_attachments(calendar_id: str, event_id: str, files_urls: list) -> 
             'description': description + '\n' + '\n'.join(files_urls)
         }
 
-        await session.patch(f'{API_URL}/calendars/{calendar_id}/events/{event_id}',
-                            headers=HEADERS, ssl=False,
-                            json=changes)
+        resp = await session.patch(f'{API_URL}/calendars/{calendar_id}/events/{event_id}',
+                                   headers=HEADERS, ssl=False,
+                                   json=changes)
+        async with resp:
+            pass
 
     logger.info(
         f'Added attachments to calendar with id {calendar_id}, event with id {event_id}')

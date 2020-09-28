@@ -99,11 +99,12 @@ async def upload_video(file_path: str, folder_id: str) -> None:
     }
 
     async with ClientSession() as session:
-        async with session.post(f'{UPLOAD_API_URL}/files?uploadType=resumable',
-                                headers={**HEADERS,
-                                         **{"X-Upload-Content-Type": "video/mp4"}},
-                                json=meta_data,
-                                ssl=False) as resp:
+        resp = await session.post(f'{UPLOAD_API_URL}/files?uploadType=resumable',
+                                  headers={**HEADERS,
+                                           **{"X-Upload-Content-Type": "video/mp4"}},
+                                  json=meta_data,
+                                  ssl=False)
+        async with resp:
             session_url = resp.headers.get('Location')
 
         async with AIOFile(file_path, 'rb') as afp:
@@ -114,9 +115,10 @@ async def upload_video(file_path: str, folder_id: str) -> None:
                 chunk_size = len(chunk)
                 chunk_range = f"bytes {received_bytes_lower}-{received_bytes_lower + chunk_size - 1}"
 
-                async with session.put(session_url, data=chunk, ssl=False,
-                                       headers={"Content-Length": str(chunk_size),
-                                                "Content-Range": f"{chunk_range}/{file_size}"}) as resp:
+                resp = await session.put(session_url, data=chunk, ssl=False,
+                                         headers={"Content-Length": str(chunk_size),
+                                                  "Content-Range": f"{chunk_range}/{file_size}"})
+                async with resp:
                     chunk_range = resp.headers.get('Range')
 
                     try:
@@ -151,9 +153,10 @@ async def get_folders_by_name(name):
 
     async with ClientSession() as session:
         while page_token != False:
-            async with session.get(f'{API_URL}/files?pageToken={page_token}',
-                                   headers=HEADERS, params=params,
-                                   ssl=False) as resp:
+            resp = await session.get(f'{API_URL}/files?pageToken={page_token}',
+                                     headers=HEADERS, params=params,
+                                     ssl=False)
+            async with resp:
                 resp_json = await resp.json()
                 folders.extend(resp_json.get('files', []))
                 page_token = resp_json.get('nextPageToken', False)
@@ -171,6 +174,8 @@ async def share_file(file_id: str, user_email: str) -> None:
     }
 
     async with ClientSession() as session:
-        await session.post(f'{API_URL}/files/{file_id}/permissions',
-                           headers=HEADERS, json=user_permission,
-                           ssl=False)
+        resp = await session.post(f'{API_URL}/files/{file_id}/permissions',
+                                  headers=HEADERS, json=user_permission,
+                                  ssl=False)
+        async with resp:  # to close connection
+            pass

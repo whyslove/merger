@@ -57,9 +57,10 @@ async def get_all_courses():
 
     async with ClientSession() as session:
         while page_token != False:
-            async with session.get(f'{API_URL}/courses?pageToken={page_token}',
-                                   headers=HEADERS,
-                                   ssl=False) as resp:
+            resp = await session.get(f'{API_URL}/courses?pageToken={page_token}',
+                                     headers=HEADERS,
+                                     ssl=False)
+            async with resp:
                 resp_json = await resp.json()
                 courses.extend(resp_json.get('courses', []))
                 page_token = resp_json.get('nextPageToken', False)
@@ -84,5 +85,6 @@ async def create_announcement(course_id: str, title: str, file_ids: list, file_u
     }
 
     async with ClientSession() as session:
-        res = await session.post(f'{API_URL}/courses/{course_id}/announcements', headers=HEADERS, json=body, ssl=False)
-        return await res.json()
+        resp = await session.post(f'{API_URL}/courses/{course_id}/announcements', headers=HEADERS, json=body, ssl=False)
+        async with resp:
+            return await resp.json()

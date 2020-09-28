@@ -55,9 +55,10 @@ async def get_data(sheet_id: str, range: str) -> list:
         f'Getting data from datasheet with id {sheet_id} with range {range}')
 
     async with ClientSession() as session:
-        async with session.get(f'https://sheets.googleapis.com/v4/spreadsheets/{sheet_id}/values/{range}',
-                               headers=HEADERS,
-                               ssl=False) as resp:
+        resp = await session.get(f'https://sheets.googleapis.com/v4/spreadsheets/{sheet_id}/values/{range}',
+                                 headers=HEADERS,
+                                 ssl=False)
+        async with resp:
             json = await resp.json()
 
         return json
