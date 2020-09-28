@@ -52,6 +52,8 @@ class Merge:
                     f'screen_result_{self.round_start_time}_{self.round_end_time}.mp4')
 
         vid_start, vid_dur = self.count_duration()
+        logger.info(
+            f'For {self.event_name} vid_start = {vid_start}, vid_dur = {vid_dur}')
 
         self.cutting_process("cam", vid_start, vid_dur)
         self.cutting_process("screen", vid_start, vid_dur)
