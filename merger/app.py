@@ -10,10 +10,10 @@ from copy import deepcopy
 from aiohttp import ClientSession
 import schedule
 
-from core.apis.calendar_api import add_attachments, calendar_creds_check
-from core.apis.classroom_api import create_announcement, classroom_creds_check
-from core.apis.driveAPI import get_folders_by_name, share_file, upload_video, drive_creds_check
-from core.apis.spreadsheets_api import get_data, sheets_creds_check
+from core.apis.calendar_api import add_attachments
+from core.apis.classroom_api import create_announcement
+from core.apis.driveAPI import get_folders_by_name, share_file, upload_video
+from core.apis.spreadsheets_api import get_data
 from core.db.models import Session, Record, Room
 from core.db.utils import update_record_driveurl
 from core.exceptions.exceptions import FilesNotFoundException
@@ -136,11 +136,6 @@ class DaemonApp:
             Email: {email}, Message: {msg}')
 
     async def apis_stuff(self, record, room, file_name, backup_file_name):
-        calendar_creds_check()
-        classroom_creds_check()
-        drive_creds_check()
-        sheets_creds_check()
-
         folder_id = await self.get_folder_id(record.date, room)
         file_id, backup_file_id = await self.upload(file_name, backup_file_name, folder_id)
 

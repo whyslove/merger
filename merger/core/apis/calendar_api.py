@@ -45,13 +45,19 @@ HEADERS = {
 }
 
 
-def calendar_creds_check():
-    if creds.expiry + timedelta(hours=3) <= datetime.now():  # refresh token
-        logger.info("Recreating google creds")
-        creds_generate()
-        HEADERS["Authorization"] = f"Bearer {creds.token}"
+def creds_check(func):
+    async def wrapper(*args, **kwargs):
+        if creds.expiry + timedelta(hours=3) <= datetime.now():  # refresh token
+            logger.info("Recreating google creds")
+            creds_generate()
+            HEADERS["Authorization"] = f"Bearer {creds.token}"
+
+        return await func(*args, **kwargs)
+
+    return wrapper
 
 
+@creds_check
 async def add_attachments(calendar_id: str, event_id: str, files_urls: list) -> str:
     """
     Adds url of drive file 'file_id' to calendar event 'event_id'
