@@ -210,19 +210,18 @@ class DaemonApp:
             return None
 
     async def upload(self, file_name: str, backup_file_name: str, folder_id: str) -> tuple:
-        file_id, backup_file_id = await asyncio.gather(
-            upload_video(f'{HOME}/vids/{file_name}', folder_id),
-            upload_video(
-                f'{HOME}/vids/{backup_file_name}', folder_id)
-        )
+        try:
+            return await asyncio.gather(
+                upload_video(f'{HOME}/vids/{file_name}', folder_id),
+                upload_video(
+                    f'{HOME}/vids/{backup_file_name}', folder_id)
+            )
+        finally:
+            self.logger.info(
+                f'Finished uploading videos {file_name} and {backup_file_name}')
 
-        self.logger.info(
-            f'Finished uploading videos {file_name} and {backup_file_name}')
-
-        Merge.remove_file(f'{HOME}/vids/{file_name}')
-        Merge.remove_file(f'{HOME}/vids/{backup_file_name}')
-
-        return file_id, backup_file_id
+            Merge.remove_file(f'{HOME}/vids/{file_name}')
+            Merge.remove_file(f'{HOME}/vids/{backup_file_name}')
 
     def run(self):
         while True:

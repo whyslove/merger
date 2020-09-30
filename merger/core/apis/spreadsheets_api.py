@@ -67,4 +67,4 @@ async def get_data(sheet_id: str, range: str) -> list:
         async with resp:
             json = await resp.json()
 
-        return json
+        return json.get('values')
