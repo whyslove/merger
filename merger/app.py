@@ -46,7 +46,7 @@ class DaemonApp:
 
         records_to_create = session.query(Record).filter(Record.done == False,
                                                          Record.processing == False,
-                                                         Record.error == False).all()
+                                                         Record.error == False).order_by(Record.id).all()
 
         try:
             record = next(record for record in records_to_create
