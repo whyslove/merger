@@ -47,7 +47,7 @@ HEADERS = {
 
 def creds_check(func):
     async def wrapper(*args, **kwargs):
-        if creds.expiry + timedelta(hours=3) <= datetime.now():  # refresh token
+        if creds.expiry + timedelta(hours=3, minutes=30) <= datetime.now():  # refresh token
             logger.info("Recreating google creds")
             creds_generate()
             HEADERS["Authorization"] = f"Bearer {creds.token}"

@@ -56,7 +56,7 @@ drive_service = build('drive', 'v3', credentials=creds)
 
 
 def drive_creds_check():
-    if creds.expiry + timedelta(hours=3) <= datetime.now():  # refresh token
+    if creds.expiry + timedelta(hours=3, minutes=30) <= datetime.now():  # refresh token
         logger.info("Recreating google creds")
         creds_generate()
         HEADERS["Authorization"] = f"Bearer {creds.token}"
