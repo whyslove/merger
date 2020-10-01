@@ -56,7 +56,7 @@ class DaemonApp:
             self.logger.info(f'Records not found at {datetime.now()}')
             record = session.query(Record).filter(
                 Record.error == True, Record.done == False).first()
-            if not record:
+            if not record or datetime.now() < self.planned_drive_upload(record, delta=timedelta(180)):
                 session.close()
                 return
             self.logger.info(f'Restart record with error: {record.event_name}')
@@ -110,18 +110,17 @@ class DaemonApp:
             session.commit()
             session.close()
 
-    def planned_drive_upload(self, record):
+    def planned_drive_upload(self, record, delta=timedelta(60)):
         record_end_time = datetime.strptime(
             f'{record.date} {record.end_time}', '%Y-%m-%d %H:%M')
-        # Record from future
         if record_end_time.minute in [0, 30]:
-            delta = 60
+            pass
         elif 30 > record_end_time.minute > 0:
-            delta = 30 - record_end_time.minute + 60
+            delta += timedelta(minutes=30 - record_end_time.minute)
         else:
-            delta = 60 - record_end_time.minute + 60
+            delta += timedelta(minutes=0 - record_end_time.minute)
 
-        return record_end_time + timedelta(minutes=delta)
+        return record_end_time + delta
 
     # change to own NVR notifier
     async def send_zulip_msg(self, email, msg):
