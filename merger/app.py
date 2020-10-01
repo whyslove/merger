@@ -54,14 +54,21 @@ class DaemonApp:
             initially_error = False
         except StopIteration:
             self.logger.info(f'Records not found at {datetime.now()}')
-            record = session.query(Record).filter(
-                Record.error == True, Record.done == False).first()
-            if not record or datetime.now() < self.planned_drive_upload(record, delta=timedelta(180)):
+            records = session.query(Record).filter(
+                Record.error == True, Record.done == False).all()
+            if not records:
                 session.close()
                 return
-            self.logger.info(f'Restart record with error: {record.event_name}')
-            initially_error = True
-            record.error = False
+            
+            for record in records:
+                if datetime.now() >= self.planned_drive_upload(record, delta=timedelta(180)):
+                    self.logger.info(f'Restart record with error: {record.event_name}')
+                    initially_error = True
+                    record.error = False
+                    break
+            else:
+                session.close()
+                return
 
         try:
             self.logger.info(
