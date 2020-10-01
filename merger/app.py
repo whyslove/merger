@@ -153,7 +153,8 @@ class DaemonApp:
             'Merge was successfully processed, starting files sharing')
 
         await asyncio.gather(share_file(file_id, record.user_email),
-                             share_file(backup_file_id, record.user_email))
+                            #  share_file(backup_file_id, record.user_email)
+                            )
         await self.send_zulip_msg(record.user_email,
                                   f'Ваша склейка в NVR готова: '
                                   f'https://drive.google.com/a/auditory.ru/file/d/{file_id}/view?usp=drive_web')
@@ -165,7 +166,9 @@ class DaemonApp:
         self.logger.info(
             f'Merge has calendar id {calendar_id}, starting creating attachments')
 
-        file_ids = [file_id, backup_file_id]
+        file_ids = [file_id, 
+                   # backup_file_id
+                ]
         file_urls = [
             f"https://drive.google.com/a/auditory.ru/file/d/{file_id}/view?usp=drive_web"
             for file_id in file_ids]
@@ -221,15 +224,15 @@ class DaemonApp:
         try:
             return await asyncio.gather(
                 upload_video(f'{HOME}/vids/{file_name}', folder_id),
-                upload_video(
-                    f'{HOME}/vids/{backup_file_name}', folder_id)
+                # upload_video(
+                #     f'{HOME}/vids/{backup_file_name}', folder_id)
             )
         finally:
             self.logger.info(
-                f'Finished uploading videos {file_name} and {backup_file_name}')
+                f'Finished uploading videos {file_name}')
 
             Merge.remove_file(f'{HOME}/vids/{file_name}')
-            Merge.remove_file(f'{HOME}/vids/{backup_file_name}')
+            # Merge.remove_file(f'{HOME}/vids/{backup_file_name}')
 
     def run(self):
         while True:
