@@ -61,7 +61,7 @@ class DaemonApp:
                 return
             
             for record in records:
-                if datetime.now() >= self.planned_drive_upload(record, delta=timedelta(180)):
+                if datetime.now() >= self.planned_drive_upload(record, delta=180):
                     self.logger.info(f'Restart record with error: {record.event_name}')
                     initially_error = True
                     record.error = False
@@ -117,9 +117,11 @@ class DaemonApp:
             session.commit()
             session.close()
 
-    def planned_drive_upload(self, record, delta=timedelta(60)):
+    def planned_drive_upload(self, record, delta=60):
+        delta = timedelta(minutes=delta)
         record_end_time = datetime.strptime(
             f'{record.date} {record.end_time}', '%Y-%m-%d %H:%M')
+
         if record_end_time.minute in [0, 30]:
             pass
         elif 30 > record_end_time.minute > 0:
