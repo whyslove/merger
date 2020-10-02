@@ -177,7 +177,8 @@ class DaemonApp:
 
         description = await add_attachments(calendar_id,
                                             record.event_id,
-                                            file_urls)
+                                            file_ids,
+                                            record.event_name)
         desc_json = Merge.parse_description(description)
 
         course_code = desc_json.get('поток')
