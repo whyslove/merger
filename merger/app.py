@@ -59,10 +59,11 @@ class DaemonApp:
             if not records:
                 session.close()
                 return
-            
+
             for record in records:
                 if datetime.now() >= self.planned_drive_upload(record, delta=180):
-                    self.logger.info(f'Restart record with error: {record.event_name}')
+                    self.logger.info(
+                        f'Restart record with error: {record.event_name}')
                     initially_error = True
                     record.error = False
                     break
@@ -145,7 +146,8 @@ class DaemonApp:
 
     async def apis_stuff(self, record, room, file_name, backup_file_name):
         folder_id = await self.get_folder_id(record.date, room)
-        file_id, backup_file_id = await self.upload(file_name, backup_file_name, folder_id)
+        # file_id, backup_file_id = await self.upload(file_name, backup_file_name, folder_id)
+        file_id = await self.upload(file_name, backup_file_name, folder_id)
 
         await update_record_driveurl(record, f'https://drive.google.com/file/d/{file_id}/preview')
 
@@ -153,8 +155,8 @@ class DaemonApp:
             'Merge was successfully processed, starting files sharing')
 
         await asyncio.gather(share_file(file_id, record.user_email),
-                            #  share_file(backup_file_id, record.user_email)
-                            )
+                             #  share_file(backup_file_id, record.user_email)
+                             )
         await self.send_zulip_msg(record.user_email,
                                   f'Ваша склейка в NVR готова: '
                                   f'https://drive.google.com/a/auditory.ru/file/d/{file_id}/view?usp=drive_web')
@@ -166,9 +168,9 @@ class DaemonApp:
         self.logger.info(
             f'Merge has calendar id {calendar_id}, starting creating attachments')
 
-        file_ids = [file_id, 
-                   # backup_file_id
-                ]
+        file_ids = [file_id,
+                    # backup_file_id
+                    ]
         file_urls = [
             f"https://drive.google.com/a/auditory.ru/file/d/{file_id}/view?usp=drive_web"
             for file_id in file_ids]
