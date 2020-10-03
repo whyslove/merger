@@ -64,22 +64,23 @@ async def add_attachments(calendar_id: str, event_id: str, files_ids: list, even
     Adds url of drive file 'file_id' to calendar event 'event_id'
     """
     logger.info(
-        f'Adding attachments to calendar with id {calendar_id}, event with id {event_id}')
+        f'Adding attachments to calendar with id {calendar_id}, event with id {event_id}, event name is {event_name}')
 
     async with ClientSession() as session:
         resp = await session.get(f'{API_URL}/calendars/{calendar_id}/events/{event_id}',
                                  headers=HEADERS, ssl=False)
         async with resp:
             event = await resp.json()
+            logger.debug(event, resp.status)
 
         changes = {
             "attachments": [
                 {
                     "fileUrl": f'https://drive.google.com/a/auditory.ru/file/d/{file}/view?usp=drive_web',
-                    "mimeType": "video/mp4",
-                    'iconLink': 'https://drive-thirdparty.googleusercontent.com/16/type/video/mp4',
                     "title": event_name,
-                    "fileId": file
+                    "fileId": file,
+                    "mimeType": "video/mp4",
+                    'iconLink': 'https://drive-thirdparty.googleusercontent.com/16/type/video/mp4'
                 } for file in files_ids
             ]
         }
@@ -88,7 +89,7 @@ async def add_attachments(calendar_id: str, event_id: str, files_ids: list, even
                                    headers=HEADERS, ssl=False,
                                    json=changes, params={'supportsAttachments': 'true'})
         async with resp:
-            pass
+            logger.debug(await resp.json(), resp.status)
 
     logger.info(
         f'Added attachments to calendar with id {calendar_id}, event with id {event_id}')

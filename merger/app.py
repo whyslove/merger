@@ -263,7 +263,7 @@ class DaemonApp:
 
 
 if __name__ == "__main__":
-    DaemonApp.create_logger()
+    DaemonApp.create_logger('DEBUG')
 
     daemon_app = DaemonApp()
     daemon_app.invoke_merge_events()
