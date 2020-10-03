@@ -56,7 +56,7 @@ drive_service = build('drive', 'v3', credentials=creds)
 
 
 def drive_refresh_token():
-    logger.info("Recreating google creds")
+    logger.info("Recreating google drive creds")
     creds_generate()
     HEADERS["Authorization"] = f"Bearer {creds.token}"
 

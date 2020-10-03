@@ -46,7 +46,7 @@ HEADERS = {
 
 
 def calendar_refresh_token():
-    logger.info("Recreating google creds")
+    logger.info("Recreating google calendar creds")
     creds_generate()
     HEADERS["Authorization"] = f"Bearer {creds.token}"
 

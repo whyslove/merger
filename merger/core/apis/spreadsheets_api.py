@@ -44,7 +44,7 @@ HEADERS = {
 
 
 def sheets_refresh_token():
-    logger.info("Recreating google creds")
+    logger.info("Recreating google sheets creds")
     creds_generate()
     HEADERS["Authorization"] = f"Bearer {creds.token}"
 

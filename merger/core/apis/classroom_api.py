@@ -43,7 +43,7 @@ HEADERS = {
 
 
 def classroom_refresh_token():
-    logger.info("Recreating google creds")
+    logger.info("Recreating google classroom creds")
     creds_generate()
     HEADERS["Authorization"] = f"Bearer {creds.token}"
 
