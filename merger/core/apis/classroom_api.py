@@ -42,39 +42,12 @@ HEADERS = {
 }
 
 
-def creds_check(func):
-    async def wrapper(*args, **kwargs):
-        if creds.expiry + timedelta(hours=3, minutes=30) <= datetime.now():  # refresh token
-            logger.info("Recreating google creds")
-            creds_generate()
-            HEADERS["Authorization"] = f"Bearer {creds.token}"
-
-        return await func(*args, **kwargs)
-
-    return wrapper
+def classroom_refresh_token():
+    logger.info("Recreating google creds")
+    creds_generate()
+    HEADERS["Authorization"] = f"Bearer {creds.token}"
 
 
-@creds_check
-async def get_all_courses():
-    logger.info(f'Getting info about all classroom courses')
-
-    courses = []
-    page_token = ''
-
-    async with ClientSession() as session:
-        while page_token != False:
-            resp = await session.get(f'{API_URL}/courses?pageToken={page_token}',
-                                     headers=HEADERS,
-                                     ssl=False)
-            async with resp:
-                resp_json = await resp.json()
-                courses.extend(resp_json.get('courses', []))
-                page_token = resp_json.get('nextPageToken', False)
-
-    return courses
-
-
-@creds_check
 async def create_announcement(course_id: str, title: str, file_ids: list, file_urls: list) -> dict:
     logger.info(
         f'Creating assignment at course {course_id} with title {title}')

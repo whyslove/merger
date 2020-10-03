@@ -10,10 +10,10 @@ from copy import deepcopy
 from aiohttp import ClientSession
 import schedule
 
-from core.apis.calendar_api import add_attachments
-from core.apis.classroom_api import create_announcement
-from core.apis.driveAPI import get_folders_by_name, share_file, upload_video
-from core.apis.spreadsheets_api import get_data
+from core.apis.calendar_api import add_attachments, calendar_refresh_token
+from core.apis.classroom_api import create_announcement, classroom_refresh_token
+from core.apis.driveAPI import get_folders_by_name, share_file, upload_video, drive_refresh_token
+from core.apis.spreadsheets_api import get_data, sheets_refresh_token
 from core.db.models import Session, Record, Room
 from core.db.utils import update_record_driveurl
 from core.exceptions.exceptions import FilesNotFoundException
@@ -81,6 +81,7 @@ class DaemonApp:
             session.commit()
 
             try:
+                drive_refresh_token()
                 merge = Merge(record, room)
                 file_name, backup_file_name = merge.create_merge()
             except RuntimeError:
@@ -145,6 +146,7 @@ class DaemonApp:
             Email: {email}, Message: {msg}')
 
     async def apis_stuff(self, record, room, file_name, backup_file_name):
+        drive_refresh_token()
         folder_id = await self.get_folder_id(record.date, room)
         # file_id, backup_file_id = await self.upload(file_name, backup_file_name, folder_id)
         file_id = await self.upload(file_name, backup_file_name, folder_id)
@@ -175,6 +177,7 @@ class DaemonApp:
             f"https://drive.google.com/a/auditory.ru/file/d/{file_id}/view?usp=drive_web"
             for file_id in file_ids]
 
+        calendar_refresh_token()
         description = await add_attachments(calendar_id,
                                             record.event_id,
                                             file_ids,
@@ -187,6 +190,7 @@ class DaemonApp:
                 f"Course code not provided for event {record.event_name} with id {record.event_id}")
             return
 
+        sheets_refresh_token()
         courses = await get_data(self.class_sheet_id,
                                  self.class_sheet_range)
 
@@ -194,6 +198,7 @@ class DaemonApp:
         if not course_id:
             return
 
+        classroom_refresh_token()
         await create_announcement(
             course_id, record.event_name, file_ids, file_urls)
 
@@ -264,7 +269,7 @@ class DaemonApp:
 
 
 if __name__ == "__main__":
-    DaemonApp.create_logger('DEBUG')
+    DaemonApp.create_logger()
 
     daemon_app = DaemonApp()
     daemon_app.invoke_merge_events()
