@@ -157,8 +157,8 @@ class DaemonApp:
         self.logger.info(
             'Merge was successfully processed, starting files sharing')
 
-        await asyncio.gather(share_file(file_id, record.user_email)
-                             for file_id in file_ids
+        await asyncio.gather(*[share_file(file_id, record.user_email)
+                               for file_id in file_ids]
                              )
         await self.send_zulip_msg(record.user_email,
                                   f'Ваша склейка в NVR готова: '
@@ -228,8 +228,8 @@ class DaemonApp:
     async def upload(self, files: list, folder_id: str) -> tuple:
         try:
             return await asyncio.gather(
-                upload_video(f'{HOME}/vids/{file_name}', folder_id)
-                for file_name in files
+                *[upload_video(f'{HOME}/vids/{file_name}', folder_id)
+                  for file_name in files]
             )
         finally:
             self.logger.info(
