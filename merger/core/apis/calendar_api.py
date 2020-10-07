@@ -45,26 +45,18 @@ HEADERS = {
 }
 
 
-def creds_check(func):
-    async def wrapper(*args, **kwargs):
-        # refresh token
-        if creds.expiry + timedelta(hours=3, minutes=30) <= datetime.now():
-            logger.info("Recreating google creds")
-            creds_generate()
-            HEADERS["Authorization"] = f"Bearer {creds.token}"
-
-        return await func(*args, **kwargs)
-
-    return wrapper
+def calendar_refresh_token():
+    logger.info("Recreating google calendar creds")
+    creds_generate()
+    HEADERS["Authorization"] = f"Bearer {creds.token}"
 
 
-@creds_check
 async def add_attachments(calendar_id: str, event_id: str, files_ids: list, event_name: str) -> str:
     """
     Adds url of drive file 'file_id' to calendar event 'event_id'
     """
     logger.info(
-        f'Adding attachments to calendar with id {calendar_id}, event with id {event_id}')
+        f'Adding attachments to calendar with id {calendar_id}, event with id {event_id}, event name is {event_name}')
 
     async with ClientSession() as session:
         resp = await session.get(f'{API_URL}/calendars/{calendar_id}/events/{event_id}',
@@ -76,10 +68,10 @@ async def add_attachments(calendar_id: str, event_id: str, files_ids: list, even
             "attachments": [
                 {
                     "fileUrl": f'https://drive.google.com/a/auditory.ru/file/d/{file}/view?usp=drive_web',
-                    "mimeType": "video/mp4",
-                    'iconLink': 'https://drive-thirdparty.googleusercontent.com/16/type/video/mp4',
                     "title": event_name,
-                    "fileId": file
+                    "fileId": file,
+                    "mimeType": "video/mp4",
+                    'iconLink': 'https://drive-thirdparty.googleusercontent.com/16/type/video/mp4'
                 } for file in files_ids
             ]
         }

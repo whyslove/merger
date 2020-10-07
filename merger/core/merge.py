@@ -26,14 +26,15 @@ class Merge:
         self.cameras_file_name = f"cam_vids_to_merge_{self.start_time}_{self.end_time}.txt"
         self.screens_file_name = f"screen_vids_to_merge_{self.start_time}_{self.end_time}.txt"
 
+        self.got_all_screens = True
+
         cam_file_names, screen_file_names, reserve_cam_file_names, date_time_end \
             = self.get_file_names(record.date, room)
 
         for cam_file_name, screen_file_name, reserve_cam_file_name in zip(cam_file_names, screen_file_names,
                                                                           reserve_cam_file_names):
-            reserve_cam_file_id = \
-                self.screen_videos_check(
-                    cam_file_name, screen_file_name, reserve_cam_file_name, date_time_end)
+            reserve_cam_file_id = self.screen_videos_check(
+                cam_file_name, screen_file_name, reserve_cam_file_name, date_time_end)
 
             if not reserve_cam_file_id:
                 self.screen_stream_check(
@@ -42,13 +43,46 @@ class Merge:
         self.round_start_time = cam_file_names[0].split("_")[1]
 
         if len(cam_file_names) > 1:
-            temp_time = datetime.strptime(cam_file_names[-1].split("_")[1], "%H:%M") + timedelta(hours=0, minutes=30)
+            temp_time = datetime.strptime(
+                cam_file_names[-1].split("_")[1], "%H:%M") + timedelta(hours=0, minutes=30)
 
             self.round_end_time = temp_time.strftime("%H:%M")
         else:
             self.round_end_time = self.end_time
 
+    def create_lecture(self) -> list:
+        logger.info("No presentation -- concat video and upload")
+
+        self.concat_process(self.cameras_file_name, "cam")
+        logger.info(f'Finished concatenating videos '
+                    f'cam_result_{self.round_start_time}_{self.round_end_time}.mp4')
+
+        vid_start, vid_dur = self.count_duration()
+        logger.info(
+            f'For {self.event_name} vid_start = {vid_start}, vid_dur = {vid_dur}')
+
+        self.cutting_process("cam", vid_start, vid_dur)
+        logger.info(
+            f'Finished cutting videos cam_clipped_{self.start_time}_{self.end_time}.mp4')
+
+        self.remove_intermediate_videos(self.cameras_file_name)
+        self.remove_file(
+            f'{HOME}/vids/cam_result_{self.round_start_time}_{self.round_end_time}.mp4')
+
+        file_name = f'{self.start_time}_{self.end_time}.mp4'
+        file_name = f'{self.event_name.replace(" ", "_")}_{file_name}'
+
+        os.rename(f'{HOME}/vids/cam_clipped_{self.start_time}_{self.end_time}.mp4',
+                  f'{HOME}/vids/{file_name}')
+
+        return [file_name]
+
     def create_merge(self) -> tuple:
+        if not self.got_all_screens:
+            return self.create_lecture()
+
+        logger.info("Got presentation -- concat videos, merge and upload")
+
         self.concat_process(self.cameras_file_name, "cam")
         self.concat_process(self.screens_file_name, "screen")
 
@@ -66,7 +100,12 @@ class Merge:
         logger.info(f'Finished cutting videos cam_clipped_{self.start_time}_{self.end_time}.mp4 and '
                     f'screen_clipped_{self.start_time}_{self.end_time}.mp4')
 
-        self.remove_intermediate_videos()
+        self.remove_intermediate_videos(self.cameras_file_name)
+        self.remove_intermediate_videos(self.screens_file_name)
+        self.remove_file(
+            f'{HOME}/vids/cam_result_{self.round_start_time}_{self.round_end_time}.mp4')
+        self.remove_file(
+            f'{HOME}/vids/screen_result_{self.round_start_time}_{self.round_end_time}.mp4')
 
         self.hstack_process()
 
@@ -182,6 +221,8 @@ class Merge:
             screens_file.write(
                 f"file '{HOME}/vids/{reserve_cam_file_name}'\n")
 
+            self.got_all_screens = False
+
         screens_file.close()
         im_example.close()
         im_cutted.close()
@@ -207,12 +248,12 @@ class Merge:
 
         with open(f'{HOME}/vids/{self.cameras_file_name}') as cams_file:
             duration = len(cams_file.readlines()) * 30 - \
-                       time_to_cut_1 - time_to_cut_2
+                time_to_cut_1 - time_to_cut_2
 
         hours = f'{duration // 60}' if (duration //
                                         60) > 9 else f'0{duration // 60}'
         minutes = f'{duration % 60}' if (
-                                                duration % 60) > 9 else f'0{duration % 60}'
+            duration % 60) > 9 else f'0{duration % 60}'
         vid_dur = f'{hours}:{minutes}:00'
         vid_start = f'00:{time_to_cut_1}:00' if time_to_cut_1 > 9 else f'00:0{time_to_cut_1}:00'
 
@@ -238,27 +279,13 @@ class Merge:
         process.wait()
         log_file.close()
 
-    def remove_intermediate_videos(self):
-        cams_file = open(f'{HOME}/vids/{self.cameras_file_name}', "r")
-        screens_file = open(f'{HOME}/vids/{self.screens_file_name}', "r")
-
-        for line in cams_file.readlines():
-            self.remove_file(line.split(' ')[-1].split('\'')[1])
-        for line in screens_file.readlines():
-            self.remove_file(line.split(' ')[-1].split('\'')[1])
+    def remove_intermediate_videos(self, sources_file_name):
+        with open(f'{HOME}/vids/{sources_file_name}', "r") as file:
+            for line in file.readlines():
+                self.remove_file(line.split(' ')[-1].split('\'')[1])
 
         self.remove_file(
-            f'{HOME}/vids/cam_result_{self.round_start_time}_{self.round_end_time}.mp4')
-        self.remove_file(
-            f'{HOME}/vids/screen_result_{self.round_start_time}_{self.round_end_time}.mp4')
-
-        cams_file.close()
-        screens_file.close()
-
-        self.remove_file(
-            f'{HOME}/vids/{self.cameras_file_name}')
-        self.remove_file(
-            f'{HOME}/vids/{self.screens_file_name}')
+            f'{HOME}/vids/{sources_file_name}')
 
     def hstack_process(self):
         log_file = open(f"/var/log/merger/hstack_log.txt", "a")

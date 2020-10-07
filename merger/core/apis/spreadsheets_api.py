@@ -43,19 +43,12 @@ HEADERS = {
 }
 
 
-def creds_check(func):
-    async def wrapper(*args, **kwargs):
-        if creds.expiry + timedelta(hours=3, minutes=30) <= datetime.now():  # refresh token
-            logger.info("Recreating google creds")
-            creds_generate()
-            HEADERS["Authorization"] = f"Bearer {creds.token}"
-
-        return await func(*args, **kwargs)
-
-    return wrapper
+def sheets_refresh_token():
+    logger.info("Recreating google sheets creds")
+    creds_generate()
+    HEADERS["Authorization"] = f"Bearer {creds.token}"
 
 
-@creds_check
 async def get_data(sheet_id: str, range: str) -> list:
     logger.info(
         f'Getting data from datasheet with id {sheet_id} with range {range}')
