@@ -97,6 +97,8 @@ async def upload_video(file_path: str, folder_id: str) -> None:
         "parents": [folder_id]
     }
 
+    logger.info(f'Uploading {file_path}')
+
     async with ClientSession() as session:
         resp = await session.post(f'{UPLOAD_API_URL}/files?uploadType=resumable',
                                   headers={**HEADERS,
@@ -133,8 +135,7 @@ async def upload_video(file_path: str, folder_id: str) -> None:
                     _, received_bytes_lower = bytes_data.split('-')
                     received_bytes_lower = int(received_bytes_lower) + 1
 
-    logger.info(
-        f'Uploaded {file_path}')
+    logger.info(f'Uploaded {file_path}')
 
     return file_id
 

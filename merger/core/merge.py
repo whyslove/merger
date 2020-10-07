@@ -74,8 +74,6 @@ class Merge:
 
         os.rename(f'{HOME}/vids/cam_clipped_{self.start_time}_{self.end_time}.mp4',
                   f'{HOME}/vids/{file_name}')
-        self.remove_file(
-            f'{HOME}/vids/cam_clipped_{self.start_time}_{self.end_time}.mp4')
 
         return [file_name]
 
