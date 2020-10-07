@@ -150,7 +150,9 @@ class DaemonApp:
         folder_id = await self.get_folder_id(record.date, room)
         file_ids = await self.upload(files, folder_id)
 
-        await update_record_driveurl(record, f'https://drive.google.com/file/d/{file_id}/preview')
+        main_file_id = file_ids[0]
+
+        await update_record_driveurl(record, f'https://drive.google.com/file/d/{main_file_id}/preview')
 
         self.logger.info(
             'Merge was successfully processed, starting files sharing')
@@ -160,7 +162,7 @@ class DaemonApp:
                              )
         await self.send_zulip_msg(record.user_email,
                                   f'Ваша склейка в NVR готова: '
-                                  f'https://drive.google.com/a/auditory.ru/file/d/{file_id}/view?usp=drive_web')
+                                  f'https://drive.google.com/a/auditory.ru/file/d/{main_file_id}/view?usp=drive_web')
 
         calendar_id = room.calendar if record.event_id else None
         if not calendar_id:
