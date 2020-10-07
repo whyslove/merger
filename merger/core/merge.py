@@ -223,6 +223,8 @@ class Merge:
             screens_file.write(
                 f"file '{HOME}/vids/{reserve_cam_file_name}'\n")
 
+            self.got_all_screens = False
+
         screens_file.close()
         im_example.close()
         im_cutted.close()
