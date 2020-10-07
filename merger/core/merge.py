@@ -50,7 +50,7 @@ class Merge:
         else:
             self.round_end_time = self.end_time
 
-    def create_lecture(self) -> tuple:
+    def create_lecture(self) -> list:
         logger.info("No presentation -- concat video and upload")
 
         self.concat_process(self.cameras_file_name, "cam")
@@ -77,7 +77,7 @@ class Merge:
         self.remove_file(
             f'{HOME}/vids/cam_clipped_{self.start_time}_{self.end_time}.mp4')
 
-        return tuple(file_name)
+        return [file_name]
 
     def create_merge(self) -> tuple:
         if not self.got_all_screens:
