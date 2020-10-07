@@ -83,7 +83,7 @@ class DaemonApp:
             try:
                 drive_refresh_token()
                 merge = Merge(record, room)
-                file_name, backup_file_name = merge.create_merge()
+                files = merge.create_merge()
             except RuntimeError:
                 self.logger.error(
                     f'Source videos not found for record {record.event_name} with id {record.id} '
@@ -100,7 +100,7 @@ class DaemonApp:
                     "Некоторые исходные видео не были найдены на Google-диске.")
 
             Thread(target=asyncio.run, args=(self.apis_stuff(
-                deepcopy(record), deepcopy(room), file_name, backup_file_name), )).start()
+                deepcopy(record), deepcopy(room), files), )).start()
 
         except Exception as err:
             self.logger.error(f'Exception occurred: {err}')
@@ -145,19 +145,18 @@ class DaemonApp:
         self.logger.info(f'Request to Zulip bot returned code {res.status}. \
             Email: {email}, Message: {msg}')
 
-    async def apis_stuff(self, record, room, file_name, backup_file_name):
+    async def apis_stuff(self, record, room, files):
         drive_refresh_token()
         folder_id = await self.get_folder_id(record.date, room)
-        # file_id, backup_file_id = await self.upload(file_name, backup_file_name, folder_id)
-        file_id = await self.upload(file_name, backup_file_name, folder_id)
+        file_ids = await self.upload(files, folder_id)
 
         await update_record_driveurl(record, f'https://drive.google.com/file/d/{file_id}/preview')
 
         self.logger.info(
             'Merge was successfully processed, starting files sharing')
 
-        await asyncio.gather(share_file(file_id, record.user_email),
-                             #  share_file(backup_file_id, record.user_email)
+        await asyncio.gather(share_file(file_id, record.user_email)
+                             for file_id in file_ids
                              )
         await self.send_zulip_msg(record.user_email,
                                   f'Ваша склейка в NVR готова: '
@@ -170,9 +169,6 @@ class DaemonApp:
         self.logger.info(
             f'Merge has calendar id {calendar_id}, starting creating attachments')
 
-        file_ids = [file_id,
-                    # backup_file_id
-                    ]
         file_urls = [
             f"https://drive.google.com/a/auditory.ru/file/d/{file_id}/view?usp=drive_web"
             for file_id in file_ids]
@@ -203,7 +199,6 @@ class DaemonApp:
             course_id, record.event_name, file_ids, file_urls)
 
     async def get_folder_id(self, date: str, room: Room) -> str:
-
         self.logger.info(
             f'Started getting folder id from date {date} and room {room.name}')
 
@@ -228,20 +223,18 @@ class DaemonApp:
             self.logger.error(f'Course with code {course_code} not found')
             return None
 
-    async def upload(self, file_name: str, backup_file_name: str, folder_id: str) -> tuple:
+    async def upload(self, files: list, folder_id: str) -> tuple:
         try:
-            # return await asyncio.gather(
-            #     upload_video(f'{HOME}/vids/{file_name}', folder_id),
-            #     upload_video(
-            #         f'{HOME}/vids/{backup_file_name}', folder_id)
-            # )
-            return await upload_video(f'{HOME}/vids/{file_name}', folder_id)
+            return await asyncio.gather(
+                upload_video(f'{HOME}/vids/{file_name}', folder_id)
+                for file_name in files
+            )
         finally:
             self.logger.info(
-                f'Finished uploading videos {file_name}')
+                f'Finished uploading videos {files}')
 
-            Merge.remove_file(f'{HOME}/vids/{file_name}')
-            # Merge.remove_file(f'{HOME}/vids/{backup_file_name}')
+            for file_name in files:
+                Merge.remove_file(f'{HOME}/vids/{file_name}')
 
     def run(self):
         while True:
