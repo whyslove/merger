@@ -129,7 +129,7 @@ class DaemonApp:
         elif 30 > record_end_time.minute > 0:
             delta += timedelta(minutes=30 - record_end_time.minute)
         else:
-            delta += timedelta(minutes=0 - record_end_time.minute)
+            delta += timedelta(minutes=60 - record_end_time.minute)
 
         return record_end_time + delta
 
