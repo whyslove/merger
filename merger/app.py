@@ -98,9 +98,12 @@ class DaemonApp:
                 record.error = True
                 raise FilesNotFoundException(
                     "Некоторые исходные видео не были найдены на Google-диске.")
-
-            Thread(target=asyncio.run, args=(self.apis_stuff(
-                deepcopy(record), deepcopy(room), files), )).start()
+            except Exception as err:
+                record.error = True
+                raise err
+            else:
+                Thread(target=asyncio.run, args=(self.apis_stuff(
+                    deepcopy(record), deepcopy(room), files), )).start()
 
         except Exception as err:
             self.logger.error(f'Exception occurred: {err}')
