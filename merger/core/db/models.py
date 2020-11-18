@@ -24,6 +24,15 @@ class CommonMixin:
     created_at = Column(DateTime, default=func.now())
     modified_at = Column(DateTime, default=func.now(), onupdate=func.now())
 
+class UserRecord(Base, CommonMixin):
+    __tablename__ = "user_records"
+
+    user_id = Column(Integer, ForeignKey("users.id"), primary_key=True)
+    record_id = Column(Integer, ForeignKey("records.id"), primary_key=True)
+
+    user = relationship("User", back_populates="records")
+    record = relationship("Record", back_populates="users")
+
 
 class Record(Base, CommonMixin):
     __tablename__ = "records"
