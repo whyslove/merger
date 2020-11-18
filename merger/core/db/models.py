@@ -24,6 +24,7 @@ class CommonMixin:
     created_at = Column(DateTime, default=func.now())
     modified_at = Column(DateTime, default=func.now(), onupdate=func.now())
 
+
 class UserRecord(Base, CommonMixin):
     __tablename__ = "user_records"
 
@@ -87,7 +88,6 @@ class Room(Base, CommonMixin):
 
     records = relationship("Record", back_populates="room")
     sources = relationship("Source", backref="room", lazy=False)
-    channel = relationship("Channel", backref="room", uselist=False)
 
 
 class Source(Base):
