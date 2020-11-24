@@ -1,5 +1,4 @@
 import logging
-import os
 import time
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -37,7 +36,7 @@ class DaemonApp:
         schedule.every(10).minutes.do(self.invoke_merge_events)
 
     def invoke_merge_events(self):
-        self.logger.info(f"Starting merge check")
+        self.logger.info("Starting merge check")
 
         session = Session()
         process_record = session.query(Record).filter(Record.processing == True).first()
@@ -107,7 +106,8 @@ class DaemonApp:
                 asyncio.run(
                     self.send_zulip_msg(
                         record.users[0].email,
-                        f'Некоторые исходные видео для вашей склейки "{record.event_name}" в NVR не были найдены на Google-диске, '
+                        f'Некоторые исходные видео для вашей склейки "{record.event_name}" '
+                        "в NVR не были найдены на Google-диске, "
                         "и при подготовке склейки произошла ошибка",
                     )
                 )
