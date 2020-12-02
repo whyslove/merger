@@ -122,7 +122,7 @@ class DaemonApp:
             else:
                 Thread(
                     target=asyncio.run,
-                    args=(self.apis_stuff(deepcopy(record), deepcopy(room), files),),
+                    args=(self.apis_stuff(deepcopy(record), deepcopy(record.users[0]), deepcopy(room), files),),
                 ).start()
 
         except Exception as err:
@@ -172,7 +172,7 @@ class DaemonApp:
             Email: {email}, Message: {msg}"
         )
 
-    async def apis_stuff(self, record, room, files):
+    async def apis_stuff(self, record, creator, room, files):
         drive_refresh_token()
         folder_id = await self.get_folder_id(record.date, room)
         file_ids = await self.upload(files, folder_id)
@@ -186,10 +186,10 @@ class DaemonApp:
         self.logger.info("Merge was successfully processed, starting files sharing")
 
         await asyncio.gather(
-            *[share_file(file_id, record.users[0].email) for file_id in file_ids]
+            *[share_file(file_id, creator.email) for file_id in file_ids]
         )
         await self.send_zulip_msg(
-            record.users[0].email,
+            creator.email,
             f"Ваша склейка в NVR готова: "
             f"https://drive.google.com/a/auditory.ru/file/d/{main_file_id}/view?usp=drive_web",
         )
