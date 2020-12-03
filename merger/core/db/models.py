@@ -19,13 +19,20 @@ engine = create_engine(os.environ.get("SQLALCHEMY_DATABASE_URI"))
 Session = sessionmaker(bind=engine)
 
 
-class CommonMixin:
+class IdMixin:
     id = Column(Integer, primary_key=True)
+
+
+class TimeMixin:
     created_at = Column(DateTime, default=func.now())
     modified_at = Column(DateTime, default=func.now(), onupdate=func.now())
 
 
-class UserRecord(Base, CommonMixin):
+class CommonMixin(IdMixin, TimeMixin):
+    pass
+
+
+class UserRecord(Base, TimeMixin):
     __tablename__ = "user_records"
 
     user_id = Column(Integer, ForeignKey("users.id"), primary_key=True)

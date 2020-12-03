@@ -122,7 +122,14 @@ class DaemonApp:
             else:
                 Thread(
                     target=asyncio.run,
-                    args=(self.apis_stuff(deepcopy(record), deepcopy(record.users[0]), deepcopy(room), files),),
+                    args=(
+                        self.apis_stuff(
+                            deepcopy(record),
+                            deepcopy(record.users[0]),
+                            deepcopy(room),
+                            files,
+                        ),
+                    ),
                 ).start()
 
         except Exception as err:
