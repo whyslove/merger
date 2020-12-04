@@ -125,7 +125,7 @@ class DaemonApp:
                     args=(
                         self.apis_stuff(
                             deepcopy(record),
-                            deepcopy(record.users[0]),
+                            deepcopy(record.users[0].user),
                             deepcopy(room),
                             files,
                         ),
