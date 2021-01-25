@@ -18,6 +18,7 @@ from core.apis.driveAPI import (
     drive_refresh_token,
 )
 from core.apis.spreadsheets_api import get_data, sheets_refresh_token
+from core.apis import nvr
 from core.db.models import Session, Record, Room
 from core.db.utils import update_record_driveurl
 from core.exceptions.exceptions import FilesNotFoundException
@@ -185,9 +186,13 @@ class DaemonApp:
         file_ids = await self.upload(files, folder_id)
 
         main_file_id = file_ids[0]
+        main_file_url = f"https://drive.google.com/file/d/{main_file_id}/preview"
+        
+        if creator.email == 'nvr@miem.hse.ru':
+            await nvr.send_record(room.name, record.date, record.start_time, record.end_time, main_file_url)
 
         await update_record_driveurl(
-            record, f"https://drive.google.com/file/d/{main_file_id}/preview"
+            record, main_file_url
         )
 
         self.logger.info("Merge was successfully processed, starting files sharing")
