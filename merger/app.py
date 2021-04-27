@@ -139,6 +139,7 @@ class DaemonApp:
             if initially_error and record.error:  # second try to create merge failed
                 record.done = True
 
+            self.invoke_merge_events()
         finally:  # можно будет сделать красиво defer/with
 
             if not record.error:
@@ -187,13 +188,17 @@ class DaemonApp:
 
         main_file_id = file_ids[0]
         main_file_url = f"https://drive.google.com/file/d/{main_file_id}/preview"
-        
-        if creator.email == 'nvr@miem.hse.ru':
-            await nvr.send_record(room.name, record.date, record.start_time, record.end_time, main_file_url)
 
-        await update_record_driveurl(
-            record, main_file_url
-        )
+        if creator.email == "nvr@miem.hse.ru":
+            await nvr.send_record(
+                room.name,
+                record.date,
+                record.start_time,
+                record.end_time,
+                main_file_url,
+            )
+
+        await update_record_driveurl(record, main_file_url)
 
         self.logger.info("Merge was successfully processed, starting files sharing")
 
