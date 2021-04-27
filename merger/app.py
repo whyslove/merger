@@ -34,7 +34,7 @@ class DaemonApp:
 
     def __init__(self):
         self.logger.info('Class "DaemonApp" instantiated')
-        schedule.every(10).minutes.do(self.invoke_merge_events)
+        schedule.every(5).minutes.do(self.invoke_merge_events)
 
     def invoke_merge_events(self):
         self.logger.info("Starting merge check")
@@ -139,18 +139,19 @@ class DaemonApp:
             if initially_error and record.error:  # second try to create merge failed
                 record.done = True
 
-            self.invoke_merge_events()
         finally:  # можно будет сделать красиво defer/with
+            record.processing = False
+            session.commit()
 
-            if not record.error:
+            if record.error:
+                self.invoke_merge_events()
+            else:
                 self.logger.info(
                     f"Setting record {record.event_name} with id {record.id} as done"
                 )
                 record.done = True
-
-            record.processing = False
-            session.commit()
-            session.close()
+                session.commit()
+                session.close()
 
     def planned_drive_upload(self, record, delta=60):
         delta = timedelta(minutes=delta)
