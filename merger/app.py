@@ -141,17 +141,17 @@ class DaemonApp:
 
         finally:  # можно будет сделать красиво defer/with
             record.processing = False
-            session.commit()
 
-            if record.error:
-                self.invoke_merge_events()
-            else:
+            if not record.error:
                 self.logger.info(
                     f"Setting record {record.event_name} with id {record.id} as done"
                 )
                 record.done = True
-                session.commit()
-                session.close()
+
+            session.commit()
+            session.close()
+
+            self.invoke_merge_events()
 
     def planned_drive_upload(self, record, delta=60):
         delta = timedelta(minutes=delta)
