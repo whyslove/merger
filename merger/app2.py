@@ -33,11 +33,9 @@ class DaemonApp:
         logger.info(f"Received {body}")
         result_of_merge = merge(body)
         self.channel.basic_ack(delivery_tag=method.delivery_tag)
-        if result_of_merge != "done":
-            logger.warning("Mistake while merging")
+        if result_of_merge == "resend":
+            logger.warning("Video is not ready for merging yet...")
             self.resend_message(body)
-        else:
-            logger.info("Done")
 
     def recieve(self) -> None:
         """ Запуск прослушивания очереди """
