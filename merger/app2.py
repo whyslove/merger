@@ -2,6 +2,7 @@ from pika import PlainCredentials, ConnectionParameters, BlockingConnection
 from loguru import logger
 
 from core.settings import settings
+from main import merge
 
 
 QUEUE = "main_queue"
@@ -30,9 +31,13 @@ class DaemonApp:
         body = str(body)
 
         logger.info(f"Received {body}")
-        # TODO: тут должен быть запуск мерджера по заданным параметрам
-        logger.info("Done")
+        result_of_merge = merge(body)
         self.channel.basic_ack(delivery_tag=method.delivery_tag)
+        if result_of_merge != "done":
+            logger.warning("Mistake while merging")
+            self.resend_message(body)
+        else:
+            logger.info("Done")
 
     def recieve(self) -> None:
         """ Запуск прослушивания очереди """
