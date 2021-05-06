@@ -21,6 +21,7 @@ def merge(body: str) -> str:
         return "parce exception"
 
     records = erudite.get_records(parsed_message)
+    print(records)
     if not records:
         logger.error("records request exception")
         return "records request exception"
@@ -42,5 +43,5 @@ def parce_message(body: str) -> dict:
     return parsed_message
 
 
-res = merge("{'pop':12}")
+res = merge("{'date':'2021-05-01', 'start_time':'10:30:00', 'end_time':'12:30:00', 'room_name':'305'}")
 print(res)

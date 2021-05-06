@@ -96,7 +96,7 @@ class Erudite:
             headers={"key": self.NVR_API_KEY},
         )
 
-        if res.status == 200:
-            return data
+        if res.status_code == 200:
+            return res.json()
         else:
             return []
