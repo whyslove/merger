@@ -31,3 +31,7 @@ html2text
 aiohttp
 asyncpg
 aiofile
+pika
+loguru
+pydantic
+pydantic[dotenv]
