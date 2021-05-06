@@ -6,6 +6,7 @@ class Settings(BaseSettings):
     rabbitmq_name: str = Field(..., env="RABBITMQ_NAME")
     rabbitmq_host: str = Field(..., env="RABBITMQ_HOST")
     rabbitmq_port: str = Field(..., env="RABBITMQ_PORT")
+    nvr_api_key: str = Field(..., env="NVR_API_KEY")
 
     class Config:
         env_file = ".env"
