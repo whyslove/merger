@@ -25,14 +25,21 @@ class DaemonApp:
         connection = BlockingConnection(parameters)
         self.channel = connection.channel()
 
+        logger.info("Connection sucssessful")
+
     def callback(self, ch, method, properties, body: str) -> None:
-        """ Ф-ия реагирования на полученное сообщение """
+        """
+        Ф-ия реагирования на полученное сообщение - получает сообщение, запускает ф-ию его обработки merge,
+        подтверждает получение сообщения. Если ф-ия обработки вернула 'resend', то сообщение с таким же текстом
+        перезаписывается в очередь.
+        """
 
         body = str(body)
-
         logger.info(f"Received {body}")
+
         result_of_merge = merge(body)
         self.channel.basic_ack(delivery_tag=method.delivery_tag)
+
         if result_of_merge == "resend":
             logger.warning("Video is not ready for merging yet...")
             self.resend_message(body)
@@ -58,7 +65,7 @@ class DaemonApp:
             body=message,
             properties=pika.BasicProperties(delivery_mode=2),
         )
-        logger.info(f"Resent massage - '{message}'")
+        logger.info(f"Resent message - '{message}'")
 
 
 if __name__ == "__main__":

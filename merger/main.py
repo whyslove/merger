@@ -11,6 +11,10 @@ erudite = Erudite()
 def merge(body: str) -> str:
     """ Последовательность закачивания, склейки и выгрузки видоса """
 
+    import time
+
+    time.sleep(4)
+
     parsed_message = parce_message(body)
     if not parsed_message:
         logger.error("parce exception")
@@ -25,9 +29,8 @@ def merge(body: str) -> str:
         return "resend"
 
     # TODO: тут должна быть ф-ия самой склейки
-    import time
 
-    time.sleep(10)
+    logger.info("Message converted")
 
     return "done"
 

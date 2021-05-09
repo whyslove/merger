@@ -36,32 +36,6 @@ class Erudite:
             ) as resp:
                 logger.info(f"Erudite response: {await resp.json()}")
 
-    async def a_get_record(
-        self, room_name: str, date: str, start_time: str, end_time: str
-    ) -> dict:
-        """ Получает нужные записи для склейки из Эрудита """
-
-        params = {
-            "room_name": room_name,
-            "fromdate": f"{date} {start_time}",
-            "todate": f"{date} {end_time}",
-        }
-
-        async with ClientSession() as session:
-            res = await session.get(
-                f"{self.NVR_API_URL}/records",
-                params=params,
-                headers={"key": self.NVR_API_KEY},
-            )
-            async with res:
-                data = await res.json()
-
-        # If the responce is not list -> the responce is a message that discipline is not found, and it should not be analysed further
-        if res.status == 200:
-            return data
-        else:
-            return []
-
     def get_records(self, params: dict) -> list or None:
         """ Получает нужные записи для склейки из Эрудита """
 
@@ -95,6 +69,7 @@ class Erudite:
             params=params,
             headers={"key": self.NVR_API_KEY},
         )
+        logger.info(res.json())
 
         if res.status_code == 200:
             return res.json()
