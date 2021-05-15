@@ -1,28 +1,29 @@
 import io
 import os.path
 import pickle
-import logging
+from loguru import logger
+
 from pathlib import Path
 
 from aiohttp import ClientSession
+
 from aiofile import AIOFile, Reader
+from uuid import uuid4
 
 from google.auth.transport.requests import Request
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
 
-home = str(Path.home())
-logger = logging.getLogger("merger_logger")
+from settings import settings  # add two dots (..)
+import os
 
+HOME_PATH = str(Path.home())
 
 SCOPES = "https://www.googleapis.com/auth/drive"
-"""
-Setting up drive
-"""
 creds = None
-TOKEN_PATH = "/merger/creds/tokenDrive.pickle"
-CREDS_PATH = "/merger/creds/credentials.json"
+TOKEN_PATH = settings.token_path
+CREDS_PATH = settings.creds_path
 
 
 def creds_generate():
@@ -53,15 +54,25 @@ def drive_refresh_token():
     HEADERS["Authorization"] = f"Bearer {creds.token}"
 
 
-def download_video(video_id: str, video_name: str) -> None:
-    logger.info(f"Downloading video {video_name} with id {video_id}")
+def download_video(video_id: str, folder_name: str) -> str:
+    """Downloads files from GDrive
 
+    Args:
+        video_id (str): [video id on Google Drive]
+        folder_name (str): [Folder in which merger is currently working]
+
+    Returns:
+        str: [Name of the downloaded file]
+    """
+    logger.debug(f"Downloading into {folder_name} with id {video_id}")
+    file_name = str(uuid4())
     request = drive_service.files().get_media(fileId=video_id)
-    fh = io.FileIO(f"{home}/vids/{video_name}", mode="w")
+    fh = io.FileIO(f"{HOME_PATH}/merger/{folder_name}/{file_name}", mode="w")
     downloader = MediaIoBaseDownload(fh, request)
     done = False
     while done is False:
         status, done = downloader.next_chunk()
+    return file_name
 
 
 def get_video_by_name(name: str) -> str:
