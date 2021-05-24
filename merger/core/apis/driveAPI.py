@@ -32,11 +32,11 @@ def creds_generate():
         with open(TOKEN_PATH, "rb") as token:
             creds = pickle.load(token)
     if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            flow = InstalledAppFlow.from_client_secrets_file(CREDS_PATH, SCOPES)
-            creds = flow.run_local_server(port=0)
+        # if creds and creds.expired and creds.refresh_token:
+        #     creds.refresh(Request())
+        # else:
+        flow = InstalledAppFlow.from_client_secrets_file(CREDS_PATH, SCOPES)
+        creds = flow.run_local_server(port=0)
         with open(TOKEN_PATH, "wb") as token:
             pickle.dump(creds, token)
 
@@ -58,14 +58,14 @@ def download_video(video_id: str, folder_name: str) -> str:
     """Downloads files from GDrive
 
     Args:
-        video_id (str): [video id on Google Drive]
-        folder_name (str): [Folder in which merger is currently working]
+        video_id (str): video id on Google Drive
+        folder_name (str): Folder in which merger is currently working
 
     Returns:
-        str: [Name of the downloaded file]
+        str: Name of the downloaded file
     """
     logger.debug(f"Downloading into {folder_name} with id {video_id}")
-    file_name = str(uuid4())
+    file_name = str(uuid4()) + ".mp4"
     request = drive_service.files().get_media(fileId=video_id)
     fh = io.FileIO(f"{HOME_PATH}/merger/{folder_name}/{file_name}", mode="w")
     downloader = MediaIoBaseDownload(fh, request)

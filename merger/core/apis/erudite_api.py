@@ -1,4 +1,6 @@
 from logging import log
+
+from requests.api import request
 from aiohttp import ClientSession
 import aiohttp
 from loguru import logger
@@ -12,7 +14,24 @@ class Erudite:
     def __init__(self) -> None:
         self.NVR_API_URL = "https://nvr.miem.hse.ru/api/erudite"
         self.NVR_API_KEY = settings.nvr_api_key
-        # self.NVR_API_KEY = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOnsiZW1haWwiOiJzdnZveWxvdkBtaWVtLmhzZS5ydSIsInJvbGUiOiJhZG1pbiIsIm9yZ19uYW1lIjoiXHUwNDFjXHUwNDE4XHUwNDJkXHUwNDFjIn0sImlhdCI6MTYxNTkxNTAxMywiZXhwIjoxNjIzMTcyNjEzfQ.sR6_akiOiPq0mMFl84igjY1piLquE43xcDiVSMy743E"
+        self.session = aiohttp.ClientSession()
+        # params = {
+        #     "name": "Презентация 307",
+        #     "type": "Coder",
+        #     "room_name": "307",
+        #     "room_id": "5fd8a74baf97648a559e163f",
+        #     "ip": "172.18.191.71",
+        #     "port": 80,
+        #     "role": "presentation",
+        #     "rtsp_main": "rtsp://172.18.191.71/0",
+        # }
+        # nvr_key = {"key": self.NVR_API_KEY}
+        # res = requests.post(
+        #     f"{self.NVR_API_URL}/equipment", json=params, headers=nvr_key
+        # )
+        # print(res)
+        # print(res.json())
+        # pass
 
     async def send_record(
         self,
@@ -22,7 +41,7 @@ class Erudite:
         end_time: str,
         record_url: str,
     ) -> None:
-        """ Выгружает в Эрудит запись о сделанной склейке """
+        """Выгружает в Эрудит запись о сделанной склейке"""
 
         async with ClientSession() as session:
             async with session.post(
@@ -41,7 +60,7 @@ class Erudite:
                 logger.info(f"Erudite response: {await resp.json()}")
 
     def get_records(self, params: dict) -> list or None:
-        """ Получает нужные записи для склейки из Эрудита """
+        """Получает нужные записи для склейки из Эрудита"""
 
         new_params = self.parse_params(params)
         if not new_params:
@@ -52,7 +71,7 @@ class Erudite:
         return records
 
     def parse_params(self, old_params: dict) -> dict:
-        """ Делает новый словарь из параметров, подходящих для запроса в Эрудит """
+        """Делает новый словарь из параметров, подходящих для запроса в Эрудит"""
 
         try:
             new_params = {
@@ -66,7 +85,7 @@ class Erudite:
         return new_params
 
     def request_records(self, params: dict) -> dict:
-        """ Делает запрос в Эрудит по заданным параметрам, запрашивая записи """
+        """Делает запрос в Эрудит по заданным параметрам, запрашивая записи"""
 
         res = requests.get(
             f"{self.NVR_API_URL}/records",
@@ -80,43 +99,37 @@ class Erudite:
         else:
             return []
 
-    async def get_all_relevant_equipment_from_room(
-        self, session: aiohttp.ClientSession, room_name: str
+    async def get_equipment_from_room(
+        self, room_name: str, request_equipment: list
     ) -> dict:
-        processing_equipment = {}
-        async with session.get(
+
+        async with self.session.get(
             f"{self.NVR_API_URL}/equipment", params={"room_name": room_name}
         ) as equipment:
-            equipment = await equipment.json()
-            # if equipment.get("message") == "Equipment are not found":
-            #     logger.error(f"There is no equipment in a room with name {room_name}")
-            #     raise Exception("Error while getting equipment")
+            equipment = [
+                eq
+                for eq in await equipment.json()
+                if eq.get("role") in request_equipment
+            ]
+            if len(equipment) != len(request_equipment):
+                # Here is processing whether merge is possible
+                logger.error(
+                    f"Not all equipment required for the merge type was found in room {room_name}"
+                )
+                raise Exception("Exception in getting equipment")
 
-            for eq in equipment:
-                if eq.get("role") == "Tracking":
-                    processing_equipment["main"] = eq.get("ip")
-                if eq.get("role") == "emotions":
-                    processing_equipment["emotions"] = eq.get("ip")
-                if eq.get("role") == "presentation":
-                    processing_equipment["preza"] = eq.get("ip")
-                if eq.get("role") == "default":
-                    processing_equipment["default"] = eq.get("ip")
+            equipment_ip = dict((eq["role"], eq["ip"]) for eq in equipment)
 
-            if processing_equipment.get("main") is None:
-                # No ptz use default
-                processing_equipment["main"] = processing_equipment["default"]
-
-        logger.debug(f"processing_equipment: {processing_equipment}")
-        return processing_equipment
+            return equipment_ip
 
     async def get_records_for_ip(
         self,
-        session: aiohttp.ClientSession,
         camera_ip: str,
         room_name: str,
         date: str,
         start_time: str,
         end_time: str,
+        emotions: bool = None,
     ) -> list:
         # Get records for the all date
         start = date + " " + "01:00"
@@ -127,17 +140,22 @@ class Erudite:
             "todate": end,
             "camera_ip": camera_ip,
         }
-        res = True
+        res_records = []
+        res = 1
         while res != []:
-            async with session.get(
+            async with self.session.get(
                 f"{self.NVR_API_URL}/records",
                 params=params,
             ) as records:
                 records = await records.json()
-                # records = [record.pop("keywords") for record in await records.json()]
                 records = choose_relevant_records(records, start_time, end_time)
+                if emotions is True:
+                    records[""]
+                    pass
                 logger.debug(records)
-            return records
+                res_records.extend(records)
+            res_records = datetime_sort_records(res_records)
+            return res_records
 
 
 def choose_relevant_records(records: list, start_time: str, end_time: str):
@@ -160,3 +178,16 @@ def choose_relevant_records(records: list, start_time: str, end_time: str):
         if el in end_times:
             relevant_videos.append(el)
     return relevant_videos
+
+
+def datetime_sort_records(records: list):
+    """Sort records according to their start time"""
+    for i in range(len(records)):
+        records[i]["start_datetime"] = datetime.strptime(
+            records[i]["date"] + " " + records[i]["start_time"], "%Y-%m-%d %H:%M:%S"
+        )
+    for i in range(len(records) - 1):
+        for j in range(len(records) - i - 1):
+            if records[j]["start_datetime"] > records[j + 1]["start_datetime"]:
+                records[j], records[j + 1] = records[j + 1], records[j]
+    return records
