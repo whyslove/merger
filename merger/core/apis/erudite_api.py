@@ -40,6 +40,7 @@ class Erudite:
         start_time: str,
         end_time: str,
         record_url: str,
+        video_type: str = "Offline",
     ) -> None:
         """Выгружает в Эрудит запись о сделанной склейке"""
 
@@ -52,7 +53,7 @@ class Erudite:
                     "start_time": start_time,
                     "end_time": end_time,
                     "url": record_url,
-                    "type": "Offline",
+                    "type": video_type,
                 },
                 headers={"key": self.NVR_API_KEY},
                 ssl=False,

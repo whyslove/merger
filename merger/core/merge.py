@@ -1,443 +1,255 @@
-import logging
-import os
-import subprocess
-import time
-from datetime import datetime, timedelta
+import asyncio
+
+
+from datetime import datetime
+from os import name
 from pathlib import Path
 
-import html2text
-from PIL import Image, ImageChops
 
-from .apis.driveAPI import download_video, get_video_by_name
-from .db.models import Record, Room
+from uuid import uuid4
+from loguru import logger
 
-HOME = str(Path.home())
+from db.ff_commands import (
+    mkdir,
+    rmdir,
+    cut,
+    concat,
+    ffmpeg_hstack,
+    ffmpeg_vstack,
+)
+from apis.erudite_api import Erudite as Nvr_db
+from apis.driveAPI import download_video, upload_to_remote_storage
 
-logger = logging.getLogger("merger_logger")
+input_message = {
+    "room_name": "307",
+    "date": "2021-05-13",
+    "start_time": "15:10",
+    "end_time": "15:11",
+    "id": "609709bbd05edc45876e4eaf",
+    "type": "complete_video",
+}
+ERUDITE_URL = "https://nvr.miem.hse.ru/api/erudite"
+MERGER_PATH = str(Path.home()) + "/merger"
 
 
-class Merge:
-    def __init__(self, record: Record, room: Room):
-        self.start_time = record.start_time
-        self.end_time = record.end_time
-        self.round_start_time = None
-        self.round_end_time = None
-        self.event_name = record.event_name
-        self.cameras_file_name = (
-            f"cam_vids_to_merge_{self.start_time}_{self.end_time}.txt"
+def get_id_from_gdrive_url(url: str) -> str:
+    return url.split("/file/d/")[1].split("/preview")[0]
+
+
+def patch_emotion_records(records: list) -> list:
+    """To perfom a unified interface for downloading videos needed to save video url in 'url' key.
+    But emotions have url in anouther key
+    Args:
+        records (list): list of records where key 'emotions_url' exists
+
+    Returns:
+        list: list of records
+    """
+    for i in range(len(records)):
+        records[i]["url"] = records[i]["emotions_url"]
+    return records
+
+
+def cut_videos(records, start_time, end_time, folder_name) -> None:
+    """Cutting videos in system acording to user's datetimes. Return list of records with new file_names"""
+
+    request_start = datetime.strptime(start_time, "%H:%M")
+    request_end = datetime.strptime(end_time, "%H:%M")
+    if len(records) == 1:
+        record_start = datetime.strptime(records[0].get("start_time"), "%H:%M:%S")
+
+        records[0]["file_name"] = cut(
+            file_name=records[0]["file_name"],
+            time_start=str(request_start - record_start),
+            durr=str(request_end - request_start),
+            folder_name=folder_name,
         )
-        self.screens_file_name = (
-            f"screen_vids_to_merge_{self.start_time}_{self.end_time}.txt"
+    else:
+        record_start = datetime.strptime(records[0].get("start_time"), "%H:%M:%S")
+        record_end = datetime.strptime(records[0].get("end_time"), "%H:%M:%S")
+
+        records[0]["file_name"] = cut(
+            file_name=records[0]["file_name"],
+            time_start=str(request_start - record_start),
+            durr=str(record_end - request_start),
+            folder_name=folder_name,
         )
 
-        self.got_all_screens = True
+        records[-1]["file_name"] = cut(
+            file_name=records[-1]["file_name"],
+            time_start=str(
+                datetime.strptime("00:00:00", "%H:%M:%S")
+                - datetime.strptime("00:00:00", "%H:%M:%S")
+            ),
+            durr=str(request_end - record_start),
+            folder_name=folder_name,
+        )
+    return records
 
-        (
-            cam_file_names,
-            screen_file_names,
-            reserve_cam_file_names,
-            date_time_end,
-        ) = self.get_file_names(record.date, room)
 
-        for cam_file_name, screen_file_name, reserve_cam_file_name in zip(
-            cam_file_names, screen_file_names, reserve_cam_file_names
-        ):
-            reserve_cam_file_id = self.screen_videos_check(
-                cam_file_name, screen_file_name, reserve_cam_file_name, date_time_end
+def concat_videos(role_records: dict, folder_name: str) -> dict:
+    """Concatenates videos presented in dict and returns dict with new file_names.
+    One file_name for one role
+
+    Args:
+        role_records (dict): dict with keys: roles; values: list of records
+        folder_name (str): folder in which videos are located
+
+    Returns:
+        dict: Dict with new file_names. One file_name for one role
+    """
+    concatenated_videos = {}
+    for role, records in role_records.items():
+        concatenated_videos[role] = concat(
+            folder_name,
+            *[el.get("file_name") for el in records],
+        )
+    return concatenated_videos
+
+
+class Merger:
+    """
+    Base logic of Merger work. We are proceeding one video among different hstack | vstack
+    commands to get appropriate video and then upload it
+    """
+
+    def __init__(self, merge_type: str, details_from_request: dict):
+        """
+        Args:
+            merge_type (str): Type of merge must contain only names of equipment through undersocre
+            e.g. "main_emotions"
+            details_from_request (dict): Message from Rabbit
+        """
+        self.merge_type = merge_type
+        self.details_from_request = details_from_request
+        self.folder_name = str(uuid4())  # uses for store local files for processing
+        self.Nvr_db = Nvr_db()
+
+        mkdir(str(Path.home()) + "/merger/", self.folder_name)
+
+    async def identify_videos_for_merging(self) -> list:
+        request_equipment = self.merge_type.split(
+            "_"
+        )  # in merge type we store info about equip
+        equipment = await self.Nvr_db.get_equipment_from_room(
+            self.details_from_request["room_name"], request_equipment
+        )
+
+        # dictionary with keys: roles; values: list of records
+        role_records = {}
+        for role, ip in equipment.items():
+            role_records[role] = await self.Nvr_db.get_records_for_ip(
+                ip,
+                self.details_from_request["room_name"],
+                self.details_from_request["date"],
+                self.details_from_request["start_time"],
+                self.details_from_request["end_time"],
             )
+        if role_records.get("emotions") is not None:
+            role_records["emotions"] = patch_emotion_records(
+                role_records["emotions"]
+            )  # perform unidied interface for downloading
+        return role_records
 
-            if not reserve_cam_file_id:
-                self.screen_stream_check(screen_file_name, reserve_cam_file_name)
-
-        self.round_start_time = cam_file_names[0].split("_")[1]
-
-        if len(cam_file_names) > 1:
-            temp_time = datetime.strptime(
-                cam_file_names[-1].split("_")[1], "%H:%M"
-            ) + timedelta(hours=0, minutes=30)
-
-            self.round_end_time = temp_time.strftime("%H:%M")
-        else:
-            self.round_end_time = self.end_time
-
-    def create_lecture(self) -> list:
-        logger.info("No presentation -- concat video and upload")
-
-        self.concat_process(self.cameras_file_name, "cam")
-        logger.info(
-            f"Finished concatenating videos "
-            f"cam_result_{self.round_start_time}_{self.round_end_time}.mp4"
-        )
-
-        vid_start, vid_dur = self.count_duration()
-        logger.info(
-            f"For {self.event_name} vid_start = {vid_start}, vid_dur = {vid_dur}"
-        )
-
-        self.cutting_process("cam", vid_start, vid_dur)
-        logger.info(
-            f"Finished cutting videos cam_clipped_{self.start_time}_{self.end_time}.mp4"
-        )
-
-        self.remove_intermediate_videos(self.cameras_file_name)
-        self.remove_file(
-            f"{HOME}/vids/cam_result_{self.round_start_time}_{self.round_end_time}.mp4"
-        )
-
-        file_name = f"{self.start_time}_{self.end_time}.mp4"
-        file_name = f'{self.event_name.replace(" ", "_")}_{file_name}'
-
-        os.rename(
-            f"{HOME}/vids/cam_clipped_{self.start_time}_{self.end_time}.mp4",
-            f"{HOME}/vids/{file_name}",
-        )
-
-        return [file_name]
-
-    def create_merge(self) -> tuple:
-        if not self.got_all_screens:
-            return self.create_lecture()
-
-        logger.info("Got presentation -- concat videos, merge and upload")
-
-        self.concat_process(self.cameras_file_name, "cam")
-        self.concat_process(self.screens_file_name, "screen")
-
-        logger.info(
-            f"Finished concatenating videos "
-            f"cam_result_{self.round_start_time}_{self.round_end_time}.mp4 and "
-            f"screen_result_{self.round_start_time}_{self.round_end_time}.mp4"
-        )
-
-        vid_start, vid_dur = self.count_duration()
-        logger.info(
-            f"For {self.event_name} vid_start = {vid_start}, vid_dur = {vid_dur}"
-        )
-
-        self.cutting_process("cam", vid_start, vid_dur)
-        self.cutting_process("screen", vid_start, vid_dur)
-
-        logger.info(
-            f"Finished cutting videos cam_clipped_{self.start_time}_{self.end_time}.mp4 and "
-            f"screen_clipped_{self.start_time}_{self.end_time}.mp4"
-        )
-
-        self.remove_intermediate_videos(self.cameras_file_name)
-        self.remove_intermediate_videos(self.screens_file_name)
-        self.remove_file(
-            f"{HOME}/vids/cam_result_{self.round_start_time}_{self.round_end_time}.mp4"
-        )
-        self.remove_file(
-            f"{HOME}/vids/screen_result_{self.round_start_time}_{self.round_end_time}.mp4"
-        )
-
-        self.hstack_process()
-
-        logger.info(
-            f"Finished merging video {self.start_time}_{self.end_time}_final.mp4"
-        )
-
-        self.remove_file(
-            f"{HOME}/vids/cam_clipped_{self.start_time}_{self.end_time}.mp4"
-        )
-
-        file_name = f"{self.start_time}_{self.end_time}.mp4"
-        backup_file_name = f"{self.start_time}_{self.end_time}_backup.mp4"
-
-        if self.event_name is not None:
-            file_name = f'{self.event_name.replace(" ", "_")}_' + file_name
-            backup_file_name = (
-                f'{self.event_name.replace(" ", "_")}_' + backup_file_name
-            )
-
-        try:
-            os.rename(
-                f"{HOME}/vids/{self.start_time}_{self.end_time}_final.mp4",
-                f"{HOME}/vids/{file_name}",
-            )
-            os.rename(
-                f"{HOME}/vids/screen_clipped_{self.start_time}_{self.end_time}.mp4",
-                f"{HOME}/vids/{backup_file_name}",
-            )
-        except OSError:
-            raise RuntimeError
-
-        return file_name, backup_file_name
-
-    def get_file_names(self, date: str, room: Room) -> tuple:
-        date_time_start = datetime.strptime(
-            f"{date} {self.start_time}", "%Y-%m-%d %H:%M"
-        )
-        date_time_end = datetime.strptime(f"{date} {self.end_time}", "%Y-%m-%d %H:%M")
-
-        start_timestamp = int(date_time_start.timestamp())
-        end_timestamp = int(date_time_end.timestamp())
-
-        dates = self.get_dates_between_timestamps(start_timestamp, end_timestamp)
-        main_source = room.main_source.split(".")[-1].split("/")[0]
-        screen_source = room.screen_source.split(".")[-1].split("/")[0]
-
-        reserve_cam = next(
-            source for source in room.sources if source.merge.endswith("right")
-        )
-        backup_source = reserve_cam.ip.split(".")[-1]
-
-        cam_file_names = [
-            date.strftime(f"%Y-%m-%d_%H:%M_{room.name}_{main_source}.mp4")
-            for date in dates
-        ]
-        screen_file_names = [
-            date.strftime(f"%Y-%m-%d_%H:%M_{room.name}_{screen_source}.mp4")
-            for date in dates
-        ]
-        reserve_cam_file_names = [
-            date.strftime(f"%Y-%m-%d_%H:%M_{room.name}_{backup_source}.mp4")
-            for date in dates
-        ]
-        return cam_file_names, screen_file_names, reserve_cam_file_names, date_time_end
-
-    def screen_videos_check(
-        self, cam_file_name, screen_file_name, reserve_cam_file_name, date_time_end
-    ) -> str:
-        reserve_cam_file_id = ""
-
-        cams_file = open(f"{HOME}/vids/{self.cameras_file_name}", "a")
-        screens_file = open(f"{HOME}/vids/{self.screens_file_name}", "a")
-
-        try:
-            cam_file_id = get_video_by_name(cam_file_name)
-            download_video(cam_file_id, cam_file_name)
-            cams_file.write(f"file '{HOME}/vids/{cam_file_name}'\n")
-
-            try:
-                screen_file_id = get_video_by_name(screen_file_name)
-                download_video(screen_file_id, screen_file_name)
-            except Exception:
-                logger.info(f"Screen video {screen_file_name} not found")
-
-                reserve_cam_file_id = get_video_by_name(reserve_cam_file_name)
-                download_video(reserve_cam_file_id, reserve_cam_file_name)
-                screens_file.write(f"file '{HOME}/vids/{reserve_cam_file_name}'\n")
-        except Exception:
-            logger.error(
-                "Files not found:",
-                cam_file_name,
-                screen_file_name,
-                reserve_cam_file_name,
-            )
-
-            if (datetime.now() - date_time_end).total_seconds() // 3600 >= 1:
-                raise RuntimeError
-        finally:
-            cams_file.close()
-            screens_file.close()
-
-        return reserve_cam_file_id
-
-    def screen_stream_check(
-        self, screen_file_name: str, reserve_cam_file_name: str
-    ) -> None:
-        log_file = open("/var/log/merger/frame_cut_log.txt", "a")
-
-        cut_proc = subprocess.Popen(
-            [
-                "ffmpeg",
-                "-ss",
-                "00:00:01",
-                "-i",
-                f"{HOME}/vids/{screen_file_name}",
-                "-frames:",
-                "1",
-                "-y",
-                f"{HOME}/vids/cutted_frame.png",
-            ],
-            stdout=log_file,
-            stderr=log_file,
-        )
-        cut_proc.wait()
-        log_file.close()
-
-        im_example = Image.open("/merger/core/example.png")
-        im_cutted = Image.open(f"{HOME}/vids/cutted_frame.png")
-
-        screens_file = open(f"{HOME}/vids/{self.screens_file_name}", "a")
-
-        try:
-            ImageChops.difference(im_example, im_cutted).getbbox() is None
-        except Exception:
-            logger.info(f"Merging with presentation: {self.screens_file_name}")
-            screens_file.write(f"file '{HOME}/vids/{screen_file_name}'\n")
-        else:
-            logger.info(
-                f"No presentation provided, merging with {reserve_cam_file_name}"
-            )
-            reserve_cam_file_id = get_video_by_name(reserve_cam_file_name)
-            download_video(reserve_cam_file_id, reserve_cam_file_name)
-            screens_file.write(f"file '{HOME}/vids/{reserve_cam_file_name}'\n")
-
-            self.got_all_screens = False
-
-        screens_file.close()
-        im_example.close()
-        im_cutted.close()
-
-    def concat_process(self, file_name: str, source_type: str) -> None:
-        log_file = open(f"/var/log/merger/concat_log_{source_type}.txt", "a")
-
-        process = subprocess.Popen(
-            [
-                "ffmpeg",
-                "-f",
-                "concat",
-                "-safe",
-                "0",
-                "-i",
-                f"{HOME}/vids/{file_name}",
-                "-y",
-                "-c",
-                "copy",
-                f"{HOME}/vids/"
-                f"{source_type}_result_{self.round_start_time}_{self.round_end_time}.mp4",
-            ],
-            stdout=log_file,
-            stderr=log_file,
-        )
-        process.wait()
-        log_file.close()
-
-    def count_duration(self) -> tuple:
-        time_to_cut_1 = abs(
-            int(
-                (
-                    time.mktime(time.strptime(self.start_time, "%H:%M"))
-                    - time.mktime(time.strptime(self.round_start_time, "%H:%M"))
+    async def download_videos(self, role_records: dict) -> list:
+        # download exact videos and append to each record in dictionary
+        # new value: file_name in system
+        for role in role_records.keys():
+            for i in range(len(role_records[role])):
+                role_records[role][i]["file_name"] = download_video(
+                    get_id_from_gdrive_url(role_records[role][i]["url"]),
+                    self.folder_name,
                 )
-                // 60
+        return role_records
+
+    def perform_merge(self, role_records: list):
+        for role, records in role_records.items():
+            role_records[role] = cut_videos(
+                records,
+                self.details_from_request["start_time"],
+                self.details_from_request["end_time"],
+                self.folder_name,
             )
-        )
-        time_to_cut_2 = abs(
-            int(
-                (
-                    time.mktime(time.strptime(self.end_time, "%H:%M"))
-                    - time.mktime(time.strptime(self.round_end_time, "%H:%M"))
-                )
-                // 60
-            )
+        concatenated_videos = concat_videos(
+            role_records,
+            self.folder_name,
         )
 
-        with open(f"{HOME}/vids/{self.cameras_file_name}") as cams_file:
-            duration = len(cams_file.readlines()) * 30 - time_to_cut_1 - time_to_cut_2
+        if self.merge_type == "main_emotions":
+            output_file = self._main_emotions_merge(concatenated_videos)
+        if self.merge_type == "ptz_preza_emotions":
+            self._ptz_presa_emo_merge(concatenated_videos)
+        if self.merge_type == "emotions":
+            self._emotions(concatenated_videos)
+        return output_file
 
-        hours = f"{duration // 60}" if (duration // 60) > 9 else f"0{duration // 60}"
-        minutes = f"{duration % 60}" if (duration % 60) > 9 else f"0{duration % 60}"
-        vid_dur = f"{hours}:{minutes}:00"
-        vid_start = (
-            f"00:{time_to_cut_1}:00" if time_to_cut_1 > 9 else f"00:0{time_to_cut_1}:00"
+    async def upload(self, result_video_name: str) -> None:
+        # upload to Drive
+        file_url = await upload_to_remote_storage(
+            self.details_from_request["room_name"],
+            self.details_from_request["date"],
+            file_path=f"{MERGER_PATH}/{self.folder_name}/{result_video_name}",
         )
 
-        logger.info(
-            f"For {self.cameras_file_name}: "
-            f"start_time = {self.start_time}, round_start_time = {self.round_start_time}, "
-            f"end_time = {self.end_time}, round_end_time = {self.round_end_time}, "
-            f"time_to_cut_1 = {time_to_cut_1}, time_to_cut_2 = {time_to_cut_2}, "
-            f"duration = {duration}, vid_start = {vid_start}, vid_dur = {vid_dur}"
+        # save info about file placement in database
+        await self.Nvr_db.send_record(
+            self.details_from_request["room_name"],
+            self.details_from_request["date"],
+            self.details_from_request["start_time"],
+            self.details_from_request["end_time"],
+            record_url=file_url,
+            video_type=self.details_from_request["type"],
         )
+        logger.info(f"Merging process was ended, deleting {self.folder_name}")
+        rmdir(self.folder_name)
 
-        return vid_start, vid_dur
-
-    def cutting_process(self, source_type: str, vid_start: str, vid_dur: str) -> None:
-        log_file = open(f"/var/log/merger/cutting_log_{source_type}.txt", "a")
-
-        process = subprocess.Popen(
-            [
-                "ffmpeg",
-                "-ss",
-                vid_start,
-                "-t",
-                vid_dur,
-                "-i",
-                f"{HOME}/vids/"
-                f"{source_type}_result_{self.round_start_time}_{self.round_end_time}.mp4",
-                "-y",
-                "-c",
-                "copy",
-                f"{HOME}/vids/"
-                f"{source_type}_clipped_{self.start_time}_{self.end_time}.mp4",
-            ],
-            stdout=log_file,
-            stderr=log_file,
+    def _main_emotions_merge(self, concatenated_videos: dict):
+        # result will be saved in processing_file
+        processing_file = concatenated_videos["main"]
+        processing_file = ffmpeg_hstack(
+            self.folder_name, processing_file, concatenated_videos["emotions"]
         )
-        process.wait()
-        log_file.close()
+        return processing_file
 
-    def remove_intermediate_videos(self, sources_file_name):
-        with open(f"{HOME}/vids/{sources_file_name}", "r") as file:
-            for line in file.readlines():
-                self.remove_file(line.split(" ")[-1].split("'")[1])
-
-        self.remove_file(f"{HOME}/vids/{sources_file_name}")
-
-    def hstack_process(self):
-        log_file = open("/var/log/merger/hstack_log.txt", "a")
-
-        process = subprocess.Popen(
-            [
-                "ffmpeg",
-                "-i",
-                f"{HOME}/vids/cam_clipped_{self.start_time}_{self.end_time}.mp4",
-                "-i",
-                f"{HOME}/vids/screen_clipped_{self.start_time}_{self.end_time}.mp4",
-                "-filter_complex",
-                "hstack=inputs=2",
-                "-y",
-                f"{HOME}/vids/{self.start_time}_{self.end_time}_final.mp4",
-            ],
-            shell=False,
-            stdout=log_file,
-            stderr=log_file,
+    def _ptz_presa_emo_merge(self, concatenated_videos: dict):
+        # result will be saved in processing_file
+        processing_file = concatenated_videos["presentation"]
+        processing_file = ffmpeg_hstack(
+            self.folder_name, processing_file, concatenated_videos["emotions"]
         )
-        process.wait()
-        log_file.close()
-
-    @staticmethod
-    def get_dates_between_timestamps(start_timestamp: int, stop_timestamp: int) -> list:
-        start_timestamp = start_timestamp // 1800 * 1800
-        stop_timestamp = (
-            (stop_timestamp // 1800 + 1) * 1800
-            if int(stop_timestamp) % 1800 != 0
-            else (stop_timestamp // 1800) * 1800
+        processing_file = ffmpeg_hstack(
+            self.folder_name, processing_file, concatenated_videos["ptz"]
         )
+        return processing_file
 
-        dates = []
-        for timestamp in range(start_timestamp, stop_timestamp, 1800):
-            dates.append(datetime.fromtimestamp(timestamp))
+    def _emotions(self, concatenated_videos: dict):
+        processing_file = concatenated_videos["emotions"]
+        pass
 
-        return dates
 
-    @staticmethod
-    def parse_description(description_raw: str) -> dict:
-        logger.info(f"Started parsing description: {description_raw}")
+async def merge(input_message: str):
+    """Function that provide series of methods of merger class
 
-        htm = html2text.HTML2Text()
-        htm.ignore_links = True
+    Args:
+        input_message (str): should contain room_name, date, start_time, end_time and optional type(complete_video/non_complete) may be smt else
+    """
+    merger = Merger("main_emotions", input_message)
+    role_records = await merger.identify_videos_for_merging()
+    role_records = await merger.download_videos(role_records)
+    result_file = await merger.perform_merge(role_records)
+    await merger.upload(result_file)
 
-        if "\n" not in description_raw:
-            description_raw = htm.handle(description_raw)
+    # import pickle
 
-        description_json = {}
-        for row in description_raw.split("\n"):
-            row_data = row.split(":")
-            if len(row_data) == 2:
-                key, value = row_data
-                description_json[key.strip().lower()] = value.strip()
+    # with open("variable_save", "wb") as f:
+    #     pickle.dump(a, f)
+    # print(a)
 
-        return description_json
+    # with open("variable_save", "rb") as f:
+    # a = pickle.load(f)
+    # mg.folder_name = "2a9f8a57-17e8-4f9b-8d31-403727d31160"
+    # b = "a04167f9-0e05-4d30-935e-d50c1a19faf0.mp4"
 
-    @staticmethod
-    def remove_file(filename: str) -> None:
-        try:
-            os.remove(filename)
-        except FileNotFoundError:
-            logger.warning(f"Failed to remove file {filename}")
-        except Exception:
-            logger.error(f"Failed to remove file {filename}", exc_info=True)
+
+if __name__ == "__main__":
+    asyncio.run(merge(input_message))

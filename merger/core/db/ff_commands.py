@@ -5,7 +5,7 @@ from pathlib import Path
 
 from loguru import logger
 
-MERGER_PATH = str(Path.home()) + "/merger/"
+MERGER_PATH = str(Path.home()) + "/merger"
 
 ffmpeg_commands = {
     "concatenate": """
@@ -18,16 +18,16 @@ ffmpeg_commands = {
     """,
     "vstack": """
     cd {merger_path}/{folder_name}
-    ffmpeg -i {upper_input} -i {lower_input} -filter_complex vstack=inputs=2 -c copy {output} -nostdin -y
+    ffmpeg -i {upper_input} -i {lower_input} -filter_complex vstack=inputs=2 {output} -nostdin -y
     """,
     "hstack": """
     cd {merger_path}/{folder_name}
-    ffmpeg -i {left_input} -i {left_input} -filter_complex hstack=inputs=2 {output} -nostdin -y
+    ffmpeg -i {left_input} -i {right_input} -filter_complex hstack=inputs=2 {output} -nostdin -y
     """,
 }
 
 
-def execute_command(command: str) -> str:
+def execute_command(command: str) -> None:
     """Executes command in bash shell"""
     process = subprocess.Popen(
         command,
@@ -41,7 +41,6 @@ def execute_command(command: str) -> str:
     if error is not None:
         logger.error(f"Error in executing {command} error: {error}")
         raise Exception(error)
-    return True
 
 
 def generate_ffmpeg_command(command_name: str, **data_for_commands: str) -> str:
@@ -147,15 +146,6 @@ def ffmpeg_vstack(
     )
     execute_command(command)
     return output_file_name
-
-
-def get_roles_for_merge_type(merge_type: str):
-    if merge_type == "main_emotions":
-        return ["main", "emotions"]
-    if merge_type == "presentation_ptz_emotions":
-        return ["presentation", "Tracking", "emotions"]
-    if merge_type == "emotions":
-        return ["emotions"]
 
 
 # def make_single_merge(

@@ -1,4 +1,5 @@
 import io
+from logging import log
 import os.path
 import pickle
 from loguru import logger
@@ -115,6 +116,8 @@ async def upload_video(file_path: str, folder_id: str) -> str:
         )
         async with resp:
             session_url = resp.headers.get("Location")
+            logger.debug(resp)
+            pass
 
         async with AIOFile(file_path, "rb") as afp:
             file_size = str(os.stat(file_path).st_size)
@@ -154,12 +157,32 @@ async def upload_video(file_path: str, folder_id: str) -> str:
     return file_id
 
 
+async def upload_to_remote_storage(room_name: str, date: str, file_path: str) -> None:
+    folder_with_room_id = list((await get_folders_by_name(room_name)).keys())[0]
+    folders_with_date_ids = await get_folders_by_name(date)
+
+    correct_folder_with_date = (
+        None  # we have many folders with dates in different rooms
+    )
+    # so we have to choose exact what we need
+    for date_folder, parent_folders in folders_with_date_ids.items():
+        if folder_with_room_id in parent_folders:
+            correct_folder_with_date = date_folder
+            break
+
+    file_id = await upload_video(
+        file_path=file_path, folder_id=correct_folder_with_date
+    )
+    logger.info(f"Finished uploading video {file_path}, now it has {file_id}")
+    return f"https://drive.google.com/file/d/{file_id}"
+
+
 async def get_folders_by_name(name):
     logger.info(f"Getting the id of folder with name {name}")
 
     params = dict(
         fields="nextPageToken, files(name, id, parents)",
-        q=f"mimeType='application/vnd.google-apps.folder'and name='{name}'",
+        q=f"mimeType='application/vnd.google-apps.folder' and name='{name}'",
         spaces="drive",
     )
     folders = []
