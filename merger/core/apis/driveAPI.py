@@ -33,13 +33,13 @@ def creds_generate():
         with open(TOKEN_PATH, "rb") as token:
             creds = pickle.load(token)
     if not creds or not creds.valid:
-        # if creds and creds.expired and creds.refresh_token:
-        #     creds.refresh(Request())
-        # else:
-        flow = InstalledAppFlow.from_client_secrets_file(CREDS_PATH, SCOPES)
-        creds = flow.run_local_server(port=0)
-        with open(TOKEN_PATH, "wb") as token:
-            pickle.dump(creds, token)
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+        else:
+            flow = InstalledAppFlow.from_client_secrets_file(CREDS_PATH, SCOPES)
+            creds = flow.run_local_server(port=0)
+            with open(TOKEN_PATH, "wb") as token:
+                pickle.dump(creds, token)
 
 
 creds_generate()
@@ -65,7 +65,7 @@ def download_video(video_id: str, folder_name: str) -> str:
     Returns:
         str: Name of the downloaded file
     """
-    logger.debug(f"Downloading into {folder_name} with id {video_id}")
+    logger.info(f"Downloading id {video_id} into {folder_name}")
     file_name = str(uuid4()) + ".mp4"
     request = drive_service.files().get_media(fileId=video_id)
     fh = io.FileIO(f"{HOME_PATH}/merger/{folder_name}/{file_name}", mode="w")
@@ -173,12 +173,12 @@ async def upload_to_remote_storage(room_name: str, date: str, file_path: str) ->
     file_id = await upload_video(
         file_path=file_path, folder_id=correct_folder_with_date
     )
-    logger.info(f"Finished uploading video {file_path}, now it has {file_id}")
+    logger.info(f"Finished uploading video {file_path}, now it's id is: {file_id}")
     return f"https://drive.google.com/file/d/{file_id}"
 
 
 async def get_folders_by_name(name):
-    logger.info(f"Getting the id of folder with name {name}")
+    logger.debug(f"Getting the id of folder with name {name}")
 
     params = dict(
         fields="nextPageToken, files(name, id, parents)",

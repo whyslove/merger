@@ -1,3 +1,4 @@
+from logging import log
 import subprocess
 import uuid
 
@@ -10,19 +11,36 @@ MERGER_PATH = str(Path.home()) + "/merger"
 ffmpeg_commands = {
     "concatenate": """
     cd {merger_path}/{folder_name}
-    ffmpeg -f concat -safe 0 -i {file_wth_file_names} -c copy {output_file_name}
+    ffmpeg -loglevel error -f concat -safe 0 -i {file_wth_file_names} -c copy {output_file_name}
     """,
     "cut": """
     cd {merger_path}/{folder_name}
-    ffmpeg -ss {time_start} -t {durr} -i {file_name} -c copy  {new_file_name} -nostdin -y
+    ffmpeg -loglevel error -ss {time_start} -t {durr} -i {file_name} -c copy  {new_file_name} -nostdin -y
     """,
     "vstack": """
     cd {merger_path}/{folder_name}
-    ffmpeg -i {upper_input} -i {lower_input} -filter_complex vstack=inputs=2 {output} -nostdin -y
+    ffmpeg \
+        -loglevel error
+        -i {upper_input} \
+        -i {lower_input}\
+        -filter_complex " \
+            [0:v][1:v]xstack=inputs=2:layout=0_0|w0_0[out] \
+        " \
+        -map "[out]" \
+        -c:v libx264 -f matroska {output}
+
     """,
     "hstack": """
     cd {merger_path}/{folder_name}
-    ffmpeg -i {left_input} -i {right_input} -filter_complex hstack=inputs=2 {output} -nostdin -y
+    ffmpeg \
+        -loglevel error \
+        -i {left_input} \
+        -i {right_input}\
+        -filter_complex " \
+            [0:v][1:v]xstack=inputs=2:layout=0_0|0_h0[out] \
+        " \
+        -map "[out]" \
+        -c:v libx264 -f matroska {output}
     """,
 }
 
@@ -35,9 +53,7 @@ def execute_command(command: str) -> None:
         shell=True,
         executable="/bin/bash",
     )
-
     output, error = process.communicate()
-    logger.debug(output)
     if error is not None:
         logger.error(f"Error in executing {command} error: {error}")
         raise Exception(error)
@@ -59,7 +75,7 @@ def generate_ffmpeg_command(command_name: str, **data_for_commands: str) -> str:
 def cut(file_name: str, time_start: str, durr: str, folder_name: str) -> str:
     """return file name"""
     new_file_name = str(uuid.uuid4()) + ".mp4"
-    logger.debug(f"Cutting file {file_name} into {new_file_name}")
+    logger.info(f"Cutting file {file_name} into {new_file_name}")
     command = generate_ffmpeg_command(
         "cut",
         file_name=file_name,
@@ -79,16 +95,17 @@ def concat(folder_name, *inputs):
         file_names = [f"file '{input}'\n" for input in inputs]
         for name in file_names:
             f.writelines(name)
-        logger.debug(f"starting concatenating {inputs}")
     except Exception as exp:
         logger.error(
-            f"error in concatenation error: {exp}",
+            f"Error in concatenating. Error: {exp}",
         )
         raise Exception(exp)
     finally:
         f.close()
 
     output_file_name = str(uuid.uuid4()) + ".mp4"
+    logger.info(f"Concatenating {inputs} into {output_file_name}")
+
     command = generate_ffmpeg_command(
         "concatenate",
         output_file_name=output_file_name,
@@ -100,20 +117,20 @@ def concat(folder_name, *inputs):
 
 
 def mkdir(dir_path, dir_name) -> None:
-    logger.debug(f"Creating directory with name {dir_name}")
-    execute_command(f"mkdir {dir_path}/{dir_name}")
+    logger.info(f"Creating directory with name {dir_name}")
+    execute_command(f"mkdir {dir_path}{dir_name}")
 
 
 def rmdir(dir_name) -> None:
-    logger.debug(f"Removing directory with name {dir_name}")
+    logger.info(f"Removing directory with name {dir_name}")
     execute_command(f"rm -rf {MERGER_PATH}/{dir_name}")
 
 
 def ffmpeg_hstack(folder_name: str, left_file: str, right_file: str) -> None:
     output_file_name = str(uuid.uuid4()) + ".mp4"
 
-    logger.debug(
-        f"Horizontally stackingvideos. Left: {left_file}, right: left: {right_file} in {output_file_name}"
+    logger.info(
+        f"Horizontally stackingvideos. Left: {left_file}, right: left: {right_file} into {output_file_name}"
     )
     command = generate_ffmpeg_command(
         "hstack",
@@ -134,8 +151,8 @@ def ffmpeg_vstack(
 ) -> str:
     output_file_name = str(uuid.uuid4()) + ".mp4"
 
-    logger.debug(
-        f"Vertically stackingvideos. Upper: {upper_file}, Lower: left: {lower_file} in {output_file_name}"
+    logger.info(
+        f"Vertically stackingvideos. Upper: {upper_file}, Lower: left: {lower_file} into {output_file_name}"
     )
     command = generate_ffmpeg_command(
         "hstack",

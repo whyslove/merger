@@ -125,6 +125,9 @@ class Merger:
         self.folder_name = str(uuid4())  # uses for store local files for processing
         self.Nvr_db = Nvr_db()
 
+        logger.info(
+            f"Initialized class merger with merge_type: {self.merge_type} and message: {details_from_request}"
+        )
         mkdir(str(Path.home()) + "/merger/", self.folder_name)
 
     async def identify_videos_for_merging(self) -> list:
@@ -236,19 +239,8 @@ async def merge(input_message: str):
     merger = Merger("main_emotions", input_message)
     role_records = await merger.identify_videos_for_merging()
     role_records = await merger.download_videos(role_records)
-    result_file = await merger.perform_merge(role_records)
+    result_file = merger.perform_merge(role_records)
     await merger.upload(result_file)
-
-    # import pickle
-
-    # with open("variable_save", "wb") as f:
-    #     pickle.dump(a, f)
-    # print(a)
-
-    # with open("variable_save", "rb") as f:
-    # a = pickle.load(f)
-    # mg.folder_name = "2a9f8a57-17e8-4f9b-8d31-403727d31160"
-    # b = "a04167f9-0e05-4d30-935e-d50c1a19faf0.mp4"
 
 
 if __name__ == "__main__":
