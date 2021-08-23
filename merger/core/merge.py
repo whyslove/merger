@@ -2,7 +2,6 @@ import asyncio
 
 
 from datetime import datetime
-from os import name
 from pathlib import Path
 
 
@@ -217,7 +216,7 @@ class Merger:
     def _ptz_presa_emo_merge(self, concatenated_videos: dict):
         # result will be saved in processing_file
         processing_file = concatenated_videos["presentation"]
-        processing_file = ffmpeg_hstack(
+        processing_file = ffmpeg_vstack(
             self.folder_name, processing_file, concatenated_videos["emotions"]
         )
         processing_file = ffmpeg_hstack(
@@ -226,8 +225,7 @@ class Merger:
         return processing_file
 
     def _emotions(self, concatenated_videos: dict):
-        processing_file = concatenated_videos["emotions"]
-        pass
+        return concatenated_videos["emotions"]
 
 
 async def merge(input_message: str):
@@ -241,6 +239,7 @@ async def merge(input_message: str):
     role_records = await merger.download_videos(role_records)
     result_file = merger.perform_merge(role_records)
     await merger.upload(result_file)
+    merger.Nvr_db.session.close()
 
 
 if __name__ == "__main__":

@@ -1,4 +1,3 @@
-from logging import log
 import subprocess
 import uuid
 

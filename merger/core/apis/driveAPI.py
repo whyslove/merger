@@ -1,5 +1,4 @@
 import io
-from logging import log
 import os.path
 import pickle
 from loguru import logger
@@ -189,7 +188,7 @@ async def get_folders_by_name(name):
     page_token = ""
 
     async with ClientSession() as session:
-        while page_token != False:
+        while page_token is True:
             resp = await session.get(
                 f"{API_URL}/files?pageToken={page_token}",
                 headers=HEADERS,

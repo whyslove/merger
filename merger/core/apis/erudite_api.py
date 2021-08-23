@@ -1,6 +1,3 @@
-from logging import log
-
-from requests.api import request
 from aiohttp import ClientSession
 import aiohttp
 from loguru import logger
