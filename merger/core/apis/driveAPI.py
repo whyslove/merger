@@ -188,7 +188,7 @@ async def get_folders_by_name(name):
     page_token = ""
 
     async with ClientSession() as session:
-        while page_token is True:
+        while page_token != False:
             resp = await session.get(
                 f"{API_URL}/files?pageToken={page_token}",
                 headers=HEADERS,

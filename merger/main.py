@@ -1,4 +1,3 @@
-import asyncio
 import ast
 from loguru import logger
 
@@ -9,7 +8,7 @@ erudite = Erudite()
 
 
 def merge(body: str) -> str:
-    """ Последовательность закачивания, склейки и выгрузки видоса """
+    """Последовательность закачивания, склейки и выгрузки видоса"""
 
     import time
 
@@ -36,7 +35,7 @@ def merge(body: str) -> str:
 
 
 def parce_message(body: str) -> dict:
-    """ Парсинг переданной в сообщении строки в словарь"""
+    """Парсинг переданной в сообщении строки в словарь"""
 
     try:
         parsed_message = ast.literal_eval(body)
