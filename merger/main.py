@@ -1,49 +1,73 @@
-import ast
+from pika import PlainCredentials, ConnectionParameters, BlockingConnection
 from loguru import logger
 
-from core.apis.erudite_api import Erudite
+from core.settings import settings
+from merge import merge
 
 
-erudite = Erudite()
+QUEUE = "main_queue"
 
 
-def merge(body: str) -> str:
-    """Последовательность закачивания, склейки и выгрузки видоса"""
+class DaemonApp:
+    def __init__(self) -> None:
+        self.connect()
 
-    import time
+    def connect(self) -> None:
+        """ Соединение с очередью """
 
-    time.sleep(4)
+        credentials = PlainCredentials(
+            settings.rabbitmq_name, settings.rabbitmq_password
+        )
+        parameters = ConnectionParameters(
+            settings.rabbitmq_host, settings.rabbitmq_port, "/", credentials
+        )
 
-    parsed_message = parce_message(body)
-    if not parsed_message:
-        logger.error("parce exception")
-        return "delete"
+        connection = BlockingConnection(parameters)
+        self.channel = connection.channel()
 
-    records = erudite.get_records(parsed_message)
-    if not records:
-        logger.error("records request exception")
-        return "delete"
-    elif records == []:
-        logger.error("no records found")
-        return "resend"
+        logger.info("Connection sucssessful")
 
-    # TODO: тут должна быть ф-ия самой склейки
+    def callback(self, ch, method, properties, body: str) -> None:
+        """
+        Ф-ия реагирования на полученное сообщение - получает сообщение, запускает ф-ию его обработки merge,
+        подтверждает получение сообщения. Если ф-ия обработки вернула 'resend', то сообщение с таким же текстом
+        перезаписывается в очередь.
+        """
 
-    logger.info("Message converted")
+        body = str(body)
+        logger.info(f"Received {body}")
 
-    return "done"
+        result_of_merge = merge(body)
+        self.channel.basic_ack(delivery_tag=method.delivery_tag)
+
+        if result_of_merge == "resend":
+            logger.warning("Video is not ready for merging yet...")
+            self.resend_message(body)
+
+    def recieve(self) -> None:
+        """ Запуск прослушивания очереди """
+
+        self.channel.queue_declare(queue=QUEUE, durable=True)
+
+        self.channel.basic_qos(prefetch_count=1)
+        self.channel.basic_consume(queue=QUEUE, on_message_callback=self.callback)
+        logger.info("Waiting for messages. To exit press CTRL+C")
+        self.channel.start_consuming()
+
+    def resend_message(self, message: str) -> None:
+        """ Повторная отправка сообщения в конец очереди """
+
+        channel.queue_declare(queue=QUEUE, durable=True)
+
+        channel.basic_publish(
+            exchange="",
+            routing_key=QUEUE,
+            body=message,
+            properties=pika.BasicProperties(delivery_mode=2),
+        )
+        logger.info(f"Resent message - '{message}'")
 
 
-def parce_message(body: str) -> dict:
-    """Парсинг переданной в сообщении строки в словарь"""
-
-    try:
-        parsed_message = ast.literal_eval(body)
-    except Exception:
-        parsed_message = None
-
-    return parsed_message
-
-
-# res = merge("{'date':'2021-05-01', 'start_time':'10:30:00', 'end_time':'12:30:00', 'room_name':'305'}")
-# print(res)
+if __name__ == "__main__":
+    deamon = DaemonApp()
+    deamon.recieve()
