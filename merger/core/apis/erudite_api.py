@@ -4,7 +4,7 @@ from loguru import logger
 import requests
 from datetime import datetime
 
-from settings import settings  # мб надо вернуть две точки
+from ..settings import settings  # мб надо вернуть две точки
 
 
 class Erudite:

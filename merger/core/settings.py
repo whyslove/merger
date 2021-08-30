@@ -15,4 +15,4 @@ class Settings(BaseSettings):
         env_file_encoding = "utf-8"
 
 
-settings = Settings(_env_file=".env")  # две точки и слеш добавить
+settings = Settings(_env_file="../.env")  # две точки и слеш добавить

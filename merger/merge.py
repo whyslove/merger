@@ -15,6 +15,8 @@ def merge(body: str) -> str:
     time.sleep(4)
 
     parsed_message = parce_message(body)
+    # TODO: тут должна быть ф-ия самой склейки
+    print(parsed_message)
     if not parsed_message:
         logger.error("parce exception")
         return "delete"
@@ -27,7 +29,7 @@ def merge(body: str) -> str:
         logger.error("no records found")
         return "resend"
 
-    # TODO: тут должна быть ф-ия самой склейки
+    
 
     logger.info("Message converted")
 
