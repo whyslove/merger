@@ -25,8 +25,8 @@ class Erudite:
         email: str,
     ) -> None:
         """Выгружает в Эрудит запись о сделанной склейке"""
-        start_point = date + "T" + start_time + ":00"
-        end_point = date + "T" + end_time + ":00"
+        start_point = date + " " + start_time + ":00"
+        end_point = date + " " + end_time + ":00"
         async with ClientSession() as session:
             async with session.post(
                 f"{self.NVR_API_URL}/records",

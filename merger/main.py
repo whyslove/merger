@@ -111,7 +111,7 @@ class DaemonApp:
             body=message,
             properties=BasicProperties(delivery_mode=2),
         )
-        logger.info(f"Resent message - '{message}'")
+        logger.info(f"Sent message - '{message}'")
 
 
 if __name__ == "__main__":
