@@ -6,7 +6,7 @@ docker run -d \
  --restart on-failure \
  --name nvr_merger \
  --net=host \
- --env-file ../.env_nvr \
+ --env-file ../.env \
  -v $HOME/creds:/merger/creds \
  -v /var/log/merger:/var/log/merger \
  nvr_merger
