@@ -8,7 +8,10 @@ from pathlib import Path
 from uuid import uuid4
 from loguru import logger
 
-from db.ff_commands import (
+from .apis.erudite_api import Erudite as Nvr_db
+from .apis.driveAPI import download_video, upload_to_remote_storage
+
+from .db.ff_commands import (
     mkdir,
     rmdir,
     cut,
@@ -16,16 +19,15 @@ from db.ff_commands import (
     ffmpeg_hstack,
     ffmpeg_vstack,
 )
-from apis.erudite_api import Erudite as Nvr_db
-from apis.driveAPI import download_video, upload_to_remote_storage
 
 input_message = {
     "room_name": "307",
     "date": "2021-05-13",
     "start_time": "15:10",
     "end_time": "15:11",
-    "id": "609709bbd05edc45876e4eaf",
-    "type": "complete_video",
+    "video_purpose": "complete_video",
+    "merge_type": "main_Tracking",
+    "publishing": "GDrive",
 }
 ERUDITE_URL = "https://nvr.miem.hse.ru/api/erudite"
 MERGER_PATH = str(Path.home()) + "/merger"
@@ -176,7 +178,8 @@ class Merger:
             role_records,
             self.folder_name,
         )
-
+        if self.merge_type == "main_Tracking":
+            output_file = self._main_tracking(concatenated_videos)
         if self.merge_type == "main_emotions":
             output_file = self._main_emotions_merge(concatenated_videos)
         if self.merge_type == "ptz_preza_emotions":
@@ -185,7 +188,16 @@ class Merger:
             self._emotions(concatenated_videos)
         return output_file
 
-    async def upload(self, result_video_name: str) -> None:
+    async def upload(self, result_video_name: str) -> str:
+        """Do all necessary uploadings after merge process. Upload to remote storage video and
+        in Erduite Url of this video
+
+        Args:
+            result_video_name (str): result file name in system
+
+        Returns:
+            str: url in remote storage
+        """
         # upload to Drive
         file_url = await upload_to_remote_storage(
             self.details_from_request["room_name"],
@@ -199,28 +211,28 @@ class Merger:
             self.details_from_request["date"],
             self.details_from_request["start_time"],
             self.details_from_request["end_time"],
+            merge_type=self.details_from_request["merge_type"],
+            video_purpose=self.details_from_request["video_purpose"],
+            email=self.details_from_request["email"],
             record_url=file_url,
-            video_type=self.details_from_request["type"],
         )
         logger.info(f"Merging process was ended, deleting {self.folder_name}")
         rmdir(self.folder_name)
+        return file_url
 
     def _main_emotions_merge(self, concatenated_videos: dict):
         # result will be saved in processing_file
         processing_file = concatenated_videos["main"]
-        processing_file = ffmpeg_hstack(
+        processing_file = ffmpeg_vstack(
             self.folder_name, processing_file, concatenated_videos["emotions"]
         )
         return processing_file
 
-    def _ptz_presa_emo_merge(self, concatenated_videos: dict):
+    def _main_tracking(self, concatenated_videos: dict):
         # result will be saved in processing_file
-        processing_file = concatenated_videos["presentation"]
-        processing_file = ffmpeg_vstack(
-            self.folder_name, processing_file, concatenated_videos["emotions"]
-        )
+        processing_file = concatenated_videos["main"]
         processing_file = ffmpeg_hstack(
-            self.folder_name, processing_file, concatenated_videos["ptz"]
+            self.folder_name, processing_file, concatenated_videos["Tracking"]
         )
         return processing_file
 
@@ -228,18 +240,24 @@ class Merger:
         return concatenated_videos["emotions"]
 
 
-async def merge(input_message: str):
+async def merge(input_message: str) -> str:
     """Function that provide series of methods of merger class
 
     Args:
-        input_message (str): should contain room_name, date, start_time, end_time and optional type(complete_video/non_complete) may be smt else
+        input_message (str): should contain room_name, date, start_time, end_time, type complete_video,
+        merge_type, publishing
+    Returns:
+        "delete" if bad input message, "resend" if not all videos were found, url with video if all good
     """
-    merger = Merger("main_emotions", input_message)
+    # TODO если файлы не нашлись, то выкидывать Exception
+
+    merger = Merger(input_message.get("merge_type"), input_message)
     role_records = await merger.identify_videos_for_merging()
     role_records = await merger.download_videos(role_records)
     result_file = merger.perform_merge(role_records)
-    await merger.upload(result_file)
-    merger.Nvr_db.session.close()
+    result_url = await merger.upload(result_file)
+    await merger.Nvr_db.session.close()
+    return result_url
 
 
 if __name__ == "__main__":
