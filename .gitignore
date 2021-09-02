@@ -8,6 +8,7 @@ logs/
 *.iml
 .idea
 /merger/creds
+creds/
 
 
 # Byte-compiled / optimized / DLL files
