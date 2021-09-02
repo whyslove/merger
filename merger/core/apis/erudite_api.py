@@ -12,23 +12,6 @@ class Erudite:
         self.NVR_API_URL = "https://nvr.miem.hse.ru/api/erudite"
         self.NVR_API_KEY = settings.nvr_api_key
         self.session = aiohttp.ClientSession()
-        # params = {
-        #     "name": "Презентация 307",
-        #     "type": "Coder",
-        #     "room_name": "307",
-        #     "room_id": "5fd8a74baf97648a559e163f",
-        #     "ip": "172.18.191.71",
-        #     "port": 80,
-        #     "role": "presentation",
-        #     "rtsp_main": "rtsp://172.18.191.71/0",
-        # }
-        # nvr_key = {"key": self.NVR_API_KEY}
-        # res = requests.post(
-        #     f"{self.NVR_API_URL}/equipment", json=params, headers=nvr_key
-        # )
-        # print(res)
-        # print(res.json())
-        # pass
 
     async def send_record(
         self,
@@ -36,21 +19,26 @@ class Erudite:
         date: str,
         start_time: str,
         end_time: str,
+        merge_type: str,
+        video_purpose: str,
         record_url: str,
-        video_type: str = "Offline",
+        email: str,
     ) -> None:
         """Выгружает в Эрудит запись о сделанной склейке"""
-
+        start_point = date + "T" + start_time + ":00"
+        end_point = date + "T" + end_time + ":00"
         async with ClientSession() as session:
             async with session.post(
                 f"{self.NVR_API_URL}/records",
                 json={
                     "room_name": room_name,
                     "date": date,
-                    "start_time": start_time,
-                    "end_time": end_time,
+                    "start_point": start_point,
+                    "end_point": end_point,
                     "url": record_url,
-                    "type": video_type,
+                    "type": merge_type,
+                    "video_purpose": video_purpose,
+                    "email": email,
                 },
                 headers={"key": self.NVR_API_KEY},
                 ssl=False,
@@ -134,6 +122,7 @@ class Erudite:
         end = date + " " + "23:59"
         params = {
             "room_name": room_name,
+            "date": date,
             "fromdate": start,
             "todate": end,
             "camera_ip": camera_ip,

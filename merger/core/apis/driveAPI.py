@@ -15,12 +15,12 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
 
-from settings import settings  # add two dots (..)
+from ..settings import settings
 import os
 
 HOME_PATH = str(Path.home())
 
-SCOPES = "https://www.googleapis.com/auth/drive"
+SCOPES = ["https://www.googleapis.com/auth/drive"]
 creds = None
 TOKEN_PATH = settings.token_path
 CREDS_PATH = settings.creds_path
@@ -172,7 +172,9 @@ async def upload_to_remote_storage(room_name: str, date: str, file_path: str) ->
     file_id = await upload_video(
         file_path=file_path, folder_id=correct_folder_with_date
     )
-    logger.info(f"Finished uploading video {file_path}, now it's id is: {file_id}")
+    logger.info(
+        f"Finished uploading video {file_path}, now it's url: https://drive.google.com/file/d/{file_id}"
+    )
     return f"https://drive.google.com/file/d/{file_id}"
 
 
@@ -188,7 +190,7 @@ async def get_folders_by_name(name):
     page_token = ""
 
     async with ClientSession() as session:
-        while page_token != False:
+        while page_token is not False:
             resp = await session.get(
                 f"{API_URL}/files?pageToken={page_token}",
                 headers=HEADERS,
