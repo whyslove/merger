@@ -2,7 +2,7 @@ import io
 import os.path
 import pickle
 from loguru import logger
-
+from functools import wraps
 from pathlib import Path
 
 from aiohttp import ClientSession
@@ -48,12 +48,45 @@ HEADERS = {"Content-Type": "application/json", "Authorization": f"Bearer {creds.
 drive_service = build("drive", "v3", credentials=creds)
 
 
-def drive_refresh_token():
-    logger.info("Recreating google drive creds")
-    creds_generate()
-    HEADERS["Authorization"] = f"Bearer {creds.token}"
+def google_token_check(func):
+    """Decorator to check creds every time"""
+
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        if not creds or creds.expired:
+            logger.info("Refresh google tokens")
+            creds_generate()
+        global HEADERS
+        HEADERS = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {creds.token}",
+        }
+
+        return func(*args, **kwargs)
+
+    return wrapper
 
 
+def a_google_token_check(func):
+    """Decorator to check creds every time"""
+
+    @wraps(func)
+    async def wrapper(*args, **kwargs):
+        if not creds or creds.expired:
+            logger.info("Refresh google tokens")
+            creds_generate()
+        global HEADERS
+        HEADERS = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {creds.token}",
+        }
+
+        return await func(*args, **kwargs)
+
+    return wrapper
+
+
+@google_token_check
 def download_video(video_id: str, folder_name: str) -> str:
     """Downloads files from GDrive
 
@@ -75,6 +108,7 @@ def download_video(video_id: str, folder_name: str) -> str:
     return file_name
 
 
+@google_token_check
 def get_video_by_name(name: str) -> str:
     logger.info(f"Getting the id of video with name {name}")
 
@@ -99,6 +133,7 @@ def get_video_by_name(name: str) -> str:
     return response["files"][0]["id"]
 
 
+@a_google_token_check
 async def upload_video(file_path: str, folder_id: str) -> str:
     meta_data = {"name": file_path.split("/")[-1], "parents": [folder_id]}
 
@@ -156,6 +191,7 @@ async def upload_video(file_path: str, folder_id: str) -> str:
     return file_id
 
 
+@a_google_token_check
 async def upload_to_remote_storage(room_name: str, date: str, file_path: str) -> None:
     folder_with_room_id = list((await get_folders_by_name(room_name)).keys())[0]
     folders_with_date_ids = await get_folders_by_name(date)
@@ -178,6 +214,7 @@ async def upload_to_remote_storage(room_name: str, date: str, file_path: str) ->
     return f"https://drive.google.com/file/d/{file_id}"
 
 
+@a_google_token_check
 async def get_folders_by_name(name):
     logger.debug(f"Getting the id of folder with name {name}")
 
@@ -205,6 +242,7 @@ async def get_folders_by_name(name):
     return {folder["id"]: folder.get("parents", []) for folder in folders}
 
 
+@a_google_token_check
 async def share_file(file_id: str, user_email: str) -> None:
     logger.info(f"Sharing file with id {file_id} to user {user_email}")
 
