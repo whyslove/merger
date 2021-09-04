@@ -122,7 +122,6 @@ class Erudite:
         end = date + " " + "23:59"
         params = {
             "room_name": room_name,
-            "date": date,
             "fromdate": start,
             "todate": end,
             "camera_ip": camera_ip,
@@ -135,35 +134,43 @@ class Erudite:
                 params=params,
             ) as records:
                 records = await records.json()
-                records = choose_relevant_records(records, start_time, end_time)
+                records = choose_relevant_records(records, date, start_time, end_time)
                 if emotions is True:
                     records[""]
                     pass
                 logger.debug(records)
                 res_records.extend(records)
             res_records = datetime_sort_records(res_records)
+
+            # take to default format
+            for i in range(len(res_records)):
+                res_records[i]["start_time"] = res_records[i]["start_point"].split(" ")[
+                    1
+                ]
+                res_records[i]["end_time"] = res_records[i]["end_point"].split(" ")[1]
+                res_records[i]["date"] = res_records[i]["start_point"].split(" ")[0]
             return res_records
 
 
-def choose_relevant_records(records: list, start_time: str, end_time: str):
+def choose_relevant_records(records: list, date, start_time: str, end_time: str):
     """Gets all records from erudite for the DAY(!), and then returns records from the given period"""
-    start_time = datetime.strptime(start_time, "%H:%M")
-    end_time = datetime.strptime(end_time, "%H:%M")
+    start_time = datetime.strptime(date + " " + start_time, "%Y-%m-%d %H:%M")
+    end_time = datetime.strptime(date + " " + end_time, "%Y-%m-%d %H:%M")
 
     start_times = [
         item
         for item in records
-        if datetime.strptime(item["end_time"], "%H:%M:%S") > start_time
+        if datetime.strptime(item["end_point"], "%Y-%m-%d %H:%M:%S") > start_time
     ]
     end_times = [
         item
         for item in records
-        if datetime.strptime(item["start_time"], "%H:%M:%S") < end_time
+        if datetime.strptime(item["start_point"], "%Y-%m-%d %H:%M:%S") < end_time
     ]
-    relevant_videos = []
-    for el in start_times:
-        if el in end_times:
-            relevant_videos.append(el)
+    relevant_videos = [el for el in start_times if el in end_times]
+    # for el in start_times:
+    #     if el in end_times:
+    #         relevant_videos.append(el)
     return relevant_videos
 
 
@@ -171,7 +178,7 @@ def datetime_sort_records(records: list):
     """Sort records according to their start time"""
     for i in range(len(records)):
         records[i]["start_datetime"] = datetime.strptime(
-            records[i]["date"] + " " + records[i]["start_time"], "%Y-%m-%d %H:%M:%S"
+            records[i]["start_point"], "%Y-%m-%d %H:%M:%S"
         )
     for i in range(len(records) - 1):
         for j in range(len(records) - i - 1):

@@ -186,6 +186,8 @@ class Merger:
             self._ptz_presa_emo_merge(concatenated_videos)
         if self.merge_type == "emotions":
             self._emotions(concatenated_videos)
+        if self.merge_type == "main_support":
+            self._main_support(concatenated_videos)
         return output_file
 
     async def upload(self, result_video_name: str) -> str:
@@ -236,6 +238,13 @@ class Merger:
         )
         return processing_file
 
+    def _main_support(self, concatenated_videos: dict):
+        processing_file = concatenated_videos["main"]
+        processing_file = ffmpeg_hstack(
+            self.folder_name, processing_file, concatenated_videos["support"]
+        )
+        return processing_file
+
     def _emotions(self, concatenated_videos: dict):
         return concatenated_videos["emotions"]
 
@@ -250,7 +259,12 @@ async def merge(input_message: str) -> str:
         "delete" if bad input message, "resend" if not all videos were found, url with video if all good
     """
     # TODO если файлы не нашлись, то выкидывать Exception
-
+    date = input_message["start_point"].split(" ")[0]
+    start_time = input_message["start_point"].split(" ")[1][:-3]
+    end_time = input_message["end_point"].split(" ")[1][:-3]
+    input_message["date"] = date
+    input_message["start_time"] = start_time
+    input_message["end_time"] = end_time
     merger = Merger(input_message.get("merge_type"), input_message)
     role_records = await merger.identify_videos_for_merging()
     role_records = await merger.download_videos(role_records)
