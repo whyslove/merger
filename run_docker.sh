@@ -1,12 +1,12 @@
-docker stop nvr_merger
-docker rm nvr_merger
-docker build -t nvr_merger .
+docker stop merger
+docker rm merger
+docker build -t merger .
 docker run -d \
  -it \
  --restart on-failure \
- --name nvr_merger \
+ --name merger \
  --net=host \
  --env-file ./.env \
  -v $HOME/creds:/merger/creds \
  -v /var/log/merger:/var/log/merger \
- nvr_merger
+ merger

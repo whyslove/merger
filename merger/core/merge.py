@@ -185,9 +185,9 @@ class Merger:
         if self.merge_type == "ptz_preza_emotions":
             self._ptz_presa_emo_merge(concatenated_videos)
         if self.merge_type == "emotions":
-            self._emotions(concatenated_videos)
+            output_file = self._emotions(concatenated_videos)
         if self.merge_type == "main_support":
-            self._main_support(concatenated_videos)
+            output_file = self._main_support(concatenated_videos)
         return output_file
 
     async def upload(self, result_video_name: str) -> str:
