@@ -42,21 +42,18 @@ RABBITMQ_NAME=
 RABBITMQ_HOST=
 RABBITMQ_PORT=
 NVR_API_KEY=
+TOKEN_PATH=
+CREDS_PATH=
+LOGURU_LEVEL=
 ```
 
 ## Развертывание на сервере
 
 ```bash
 git clone https://git.miem.hse.ru/nvr/merger.git
-#добавление файлов .env
-python3 -m venv env
-source ./env/bin/activate
-python3 queue_filler/main.py
+#добавление файлов .env, creds/creds.json, creds/tokenDrive.pickle
+sudo ./run_docker.sh
 ```
-Таким образом программа отработает и соберет видео за один предыдущий день
-
-## Авторы
-
-[Сергей Войлов](https://github.com/whyslove),
+[Сергей Войлов](https://github.com/whyslove)
 [Даниил Мирталибов](https://github.com/Mint2702)
 
