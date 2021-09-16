@@ -253,12 +253,11 @@ async def merge(input_message: str) -> str:
     """Function that provide series of methods of merger class
 
     Args:
-        input_message (str): should contain room_name, date, start_time, end_time, type complete_video,
-        merge_type, publishing
+        input_message (str): should contain room_name, date, start_point(format: 2021-09-07 09:00:00),
+         end_point, type (e.g. "main_support")
     Returns:
-        "delete" if bad input message, "resend" if not all videos were found, url with video if all good
+        result_url (str): resulting url of message
     """
-    # TODO если файлы не нашлись, то выкидывать Exception
     date = input_message["start_point"].split(" ")[0]
     start_time = input_message["start_point"].split(" ")[1][:-3]
     end_time = input_message["end_point"].split(" ")[1][:-3]

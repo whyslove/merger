@@ -25,6 +25,7 @@ class DaemonApp:
         self.connect()
 
     def ack_message(self, channel, delivery_tag):
+        """Function for acknowledge of messages"""
         if channel.is_open:
             channel.basic_ack(delivery_tag)
         else:
@@ -51,8 +52,7 @@ class DaemonApp:
     def on_message(self, channel, method, properties, body: str, args) -> None:
         """
         Ф-ия реагирования на полученное сообщение - получает сообщение, запускает ф-ию его обработки merge,
-        подтверждает получение сообщения. Если ф-ия обработки вернула 'resend', то сообщение с таким же текстом
-        перезаписывается в очередь.
+        подтверждает получение сообщения.
         """
         connection = args
         logger.info(f"Received {body}")
@@ -71,15 +71,19 @@ class DaemonApp:
             t.start()
 
     def do_work(self, input_message, connection, channel, delivery_tag):
+        """Most important function that responsible for starting merge working"""
         import asyncio
 
-        result_of_merge = asyncio.run(merge(input_message))
-
-        cb = functools.partial(self.ack_message, channel, delivery_tag)
-        connection.add_callback_threadsafe(cb)
-
-        input_message["url"] = result_of_merge
-        self.send_message(input_message, queue=ON_PUBLISH_QUEUE)
+        try:
+            result_of_merge = asyncio.run(merge(input_message))
+            input_message["url"] = result_of_merge
+            self.send_message(input_message, queue=ON_PUBLISH_QUEUE)
+        except Exception as exp:
+            logger.error(exp)
+        finally:
+            # anyway delete message from queue
+            cb = functools.partial(self.ack_message, channel, delivery_tag)
+            connection.add_callback_threadsafe(cb)
 
     def start_listening(self) -> None:
         """Запуск прослушивания main очереди"""

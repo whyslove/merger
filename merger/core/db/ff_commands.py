@@ -65,12 +65,8 @@ def execute_command(command: str) -> None:
 
 
 def generate_ffmpeg_command(command_name: str, **data_for_commands: str) -> str:
-    """
-    Changes dummy names in ffmpeg command on really names
-    :param merge_type: can be 'presentation' (presentation alongside ptz and mediacontent)
-    :param resolution: resolution of main video in '16:9' format
-    :param inputs: iterable string objects with names of files, number of such objects must match merge type
-    """
+    """Changes dummy names in ffmpeg command on really names"""
+
     command = ffmpeg_commands[command_name].format(
         **data_for_commands, merger_path=MERGER_PATH
     )
@@ -78,7 +74,7 @@ def generate_ffmpeg_command(command_name: str, **data_for_commands: str) -> str:
 
 
 def cut(file_name: str, time_start: str, durr: str, folder_name: str) -> str:
-    """return file name"""
+    """Returns file_name (str): new file name in system"""
     new_file_name = str(uuid.uuid4()) + ".mp4"
     logger.info(f"Cutting file {file_name} into {new_file_name}")
     command = generate_ffmpeg_command(
@@ -94,6 +90,7 @@ def cut(file_name: str, time_start: str, durr: str, folder_name: str) -> str:
 
 
 def concat(folder_name, *inputs):
+    """Concats all videos from inputs into one"""
     try:
         file_wth_file_names = str(uuid.uuid4()) + ".txt"
         f = open(f"{MERGER_PATH}/{folder_name}/{file_wth_file_names}", mode="w")
